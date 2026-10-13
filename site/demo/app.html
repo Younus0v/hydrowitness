@@ -1,0 +1,691 @@
+<!doctype html>
+<html lang="en">
+<head>
+<script src="shim.js"></script>
+<style id="webdemo-style">#enter,#drill .row + h3,#drill .row + h3 + .row,#drill .attack-grid,[data-act="pb-start"],[data-act="pb-step"],[data-act="ack"]{display:none !important}</style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark light">
+<title>HydroWitness</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Cpath d=%27M16 2C16 2 6 14 6 20a10 10 0 0020 0C26 14 16 2 16 2z%27 fill=%27%233aa0d8%27/%3E%3C/svg%3E">
+<style>
+/* No web fonts, no CDN, no external requests: this page must still load when the internet is cut. */
+:root {
+  --bg: #0d1b22; --panel: #13262f; --panel-2: #1a313c; --line: #2c4552; --line-strong: #46667a;
+  --text: #e8f0f3; --muted: #a3b8c2; --link: #8fcbff; --water: #3aa0d8; --water-dead: #1f5a78;
+  --ok: #5ed3a8; --warn: #f4b740; --alarm: #ff6f61; --on-state: #0d1b22; --focus: #ffd75e;
+  --drill: #b69cff;
+  --sans: "Atkinson Hyperlegible", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    --bg: #eef3f5; --panel: #ffffff; --panel-2: #e3ecf0; --line: #c9d6dc; --line-strong: #8aa2af;
+    --text: #10222b; --muted: #475f6c; --link: #0b5cad; --water: #1f7fb5; --water-dead: #9cc3d8;
+    --ok: #0b7a58; --warn: #a86a00; --alarm: #b3261e; --on-state: #ffffff; --focus: #7a4d00;
+    --drill: #5b3fb5;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #eef3f5; --panel: #ffffff; --panel-2: #e3ecf0; --line: #c9d6dc; --line-strong: #8aa2af;
+  --text: #10222b; --muted: #475f6c; --link: #0b5cad; --water: #1f7fb5; --water-dead: #9cc3d8;
+  --ok: #0b7a58; --warn: #a86a00; --alarm: #b3261e; --on-state: #ffffff; --focus: #7a4d00;
+  --drill: #5b3fb5;
+}
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html { -webkit-text-size-adjust: 100%; }
+body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.5 var(--sans); }
+body[data-state="green"] { --state: var(--ok); }
+body[data-state="amber"] { --state: var(--warn); }
+body[data-state="red"] { --state: var(--alarm); }
+body[data-state="none"] { --state: var(--muted); }
+button, input, select { font: inherit; color: inherit; }
+:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
+.skip { position: absolute; left: -999px; top: 0; background: var(--panel); padding: .6rem 1rem; z-index: 10; }
+.skip:focus { left: 0; }
+h1, h2, h3, p { margin: 0; }
+h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: .7rem; }
+h3 { font-size: 1rem; font-weight: 700; }
+.muted { color: var(--muted); }
+.small { font-size: .9rem; }
+.num { font-variant-numeric: tabular-nums lining-nums; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* top strips */
+.strip { padding: .55rem 1rem; display: flex; gap: .75rem 1.25rem; align-items: center; flex-wrap: wrap; font-size: .95rem; }
+#lost { background: var(--alarm); color: var(--on-state); font-weight: 700; }
+#drillbar { background: color-mix(in srgb, var(--drill) 22%, var(--bg)); border-bottom: 3px solid var(--drill);
+  background-image: repeating-linear-gradient(135deg, transparent 0 14px, color-mix(in srgb, var(--drill) 12%, transparent) 14px 28px); }
+#livebar.bad { background: color-mix(in srgb, var(--alarm) 30%, var(--bg)); border-bottom: 3px solid var(--alarm); font-weight: 700; }
+#livebar.warn { background: color-mix(in srgb, var(--warn) 25%, var(--bg)); border-bottom: 3px solid var(--warn); font-weight: 700; }
+header.top { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; padding: 1rem 1rem .25rem; max-width: 1280px; margin: 0 auto; }
+header.top h1 { font-size: 1.25rem; font-weight: 800; letter-spacing: -.01em; }
+header.top .site { color: var(--muted); }
+header.top .right { display: flex; gap: .9rem; align-items: center; }
+
+main { max-width: 1280px; margin: 0 auto; padding: .5rem 1rem 3rem; }
+
+/* verdict */
+#verdict { display: grid; grid-template-columns: auto 1fr auto; gap: .25rem 1rem; align-items: center; padding: 1rem 1.1rem;
+  background: color-mix(in srgb, var(--state) 16%, var(--bg)); border-left: 10px solid var(--state); margin-bottom: 1.25rem; }
+#verdict .icon { width: 3rem; height: 3rem; color: var(--state); grid-row: span 2; }
+#verdict .icon svg { width: 100%; height: 100%; display: block; }
+#verdict .title { font-size: clamp(1.4rem, 4.2vw, 2.1rem); font-weight: 800; letter-spacing: -.02em; line-height: 1.15; }
+#verdict .sub { grid-column: 2; color: var(--text); max-width: 62ch; }
+#verdict .acts { grid-column: 3; grid-row: 1 / span 2; display: flex; flex-direction: column; gap: .5rem; align-items: stretch; }
+#verdict.flash { animation: flash 1.2s ease-out 1; }
+@keyframes flash { 0% { box-shadow: 0 0 0 0 var(--state); } 35% { box-shadow: 0 0 0 10px color-mix(in srgb, var(--state) 40%, transparent); } 100% { box-shadow: 0 0 0 0 transparent; } }
+.meter { grid-column: 1 / -1; margin-top: .6rem; }
+.meter .track { position: relative; height: 10px; background: var(--panel-2); border-radius: 5px; }
+.meter .fill { position: absolute; inset: 0 auto 0 0; background: var(--state); border-radius: 5px; transition: width .6s ease; }
+.meter .tick { position: absolute; top: -4px; bottom: -4px; width: 2px; background: var(--text); opacity: .75; }
+.meter .labels { position: relative; height: 1.3rem; font-size: .85rem; color: var(--muted); }
+.meter .labels span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.meter .score { font-size: .92rem; color: var(--muted); margin-bottom: .45rem; }
+
+/* buttons */
+.btn { min-height: 44px; padding: .5rem 1rem; border-radius: 6px; border: 2px solid var(--line-strong); background: transparent; cursor: pointer; font-weight: 700; }
+.btn:hover { background: var(--panel-2); }
+.btn.primary { background: var(--state, var(--link)); color: var(--on-state); border-color: transparent; }
+.btn.primary:hover { filter: brightness(1.08); background: var(--state, var(--link)); }
+.btn.quiet { border-color: var(--line); font-weight: 600; }
+.btn.small { min-height: 36px; padding: .25rem .7rem; font-size: .92rem; }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+a.linkish, button.linkish { background: none; border: 0; padding: 0; color: var(--link); text-decoration: underline; cursor: pointer; min-height: 0; }
+
+/* layout */
+.layout { display: grid; gap: 1.5rem; grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 980px) { .layout { grid-template-columns: minmax(0, 1.45fr) minmax(330px, 1fr); gap: 2rem; } }
+.read > section { margin-bottom: 2rem; }
+.rail { background: var(--panel); padding: 1.1rem 1.1rem 1.4rem; align-self: start; }
+.rail > section { padding-bottom: 1.4rem; margin-bottom: 1.4rem; border-bottom: 1px solid var(--line); }
+.rail > section:last-child { border-bottom: 0; margin-bottom: 0; padding-bottom: 0; }
+
+/* the clock */
+.clock { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: 1.25rem; align-items: start; }
+@media (max-width: 520px) { .clock { grid-template-columns: 130px minmax(0, 1fr); gap: .8rem; } }
+.clock svg { width: 100%; height: auto; display: block; overflow: visible; }
+.tank-wall { fill: none; stroke: var(--line-strong); stroke-width: 3; }
+.tank-water { fill: var(--water); transition: y .9s ease, height .9s ease; }
+.tank-water.model { fill: url(#hatch); }
+.tank-dead { fill: var(--water-dead); transition: y .9s ease, height .9s ease; }
+.tank-band { fill: var(--text); opacity: .22; transition: y .9s ease, height .9s ease; }
+.tank-line { stroke: var(--alarm); stroke-width: 2.5; stroke-dasharray: 7 5; }
+.tank-lbl { font: 600 11.5px var(--sans); fill: var(--muted); }
+.tank-lbl.strong { fill: var(--text); font-weight: 800; }
+.tank-lbl.alarm { fill: var(--alarm); }
+.worst { white-space: nowrap; font-size: clamp(1.9rem, 8vw, 4.6rem); font-weight: 800; letter-spacing: -.03em; line-height: 1; }
+.expected { font-size: clamp(1.4rem, 4vw, 1.9rem); font-weight: 700; letter-spacing: -.01em; }
+.clock .k { color: var(--muted); font-size: .95rem; }
+.clock dl { margin: 0; }
+.clock dd { margin: 0 0 .85rem; }
+.callout { border: 2px solid var(--warn); padding: .6rem .8rem; margin-top: .5rem; background: color-mix(in srgb, var(--warn) 12%, var(--bg)); }
+
+/* evidence */
+.ev { display: grid; grid-template-columns: 3.4rem minmax(0, 1fr); gap: .15rem .9rem; padding: .85rem 0; border-top: 1px solid var(--line); }
+.ev:last-child { border-bottom: 1px solid var(--line); }
+.ev .pts { font-size: 1.5rem; font-weight: 800; color: var(--state); grid-row: span 2; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.ev .t { font-weight: 700; }
+.ev .d { color: var(--muted); max-width: 70ch; }
+.empty { color: var(--muted); padding: .6rem 0; }
+details.rules summary { cursor: pointer; padding: .4rem 0; font-weight: 600; }
+.rule { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr); gap: .1rem .5rem; padding: .35rem 0; }
+.rule svg { width: 1.2rem; height: 1.2rem; }
+
+/* witnesses */
+.pump { padding: .9rem 0; border-top: 1px solid var(--line); }
+.pump:last-child { border-bottom: 1px solid var(--line); }
+.pump .head { display: flex; align-items: center; gap: .6rem; margin-bottom: .45rem; flex-wrap: wrap; }
+.pump .head svg { width: 1.3rem; height: 1.3rem; flex: none; }
+.pump .cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .5rem 1rem; }
+@media (max-width: 560px) { .pump .cols { grid-template-columns: 1fr; } }
+.pump .who { color: var(--muted); font-size: .9rem; }
+.pump .what { font-weight: 700; }
+.pump.bad .head { color: var(--alarm); }
+.tag { display: inline-block; border: 1.5px solid var(--line-strong); border-radius: 4px; padding: 0 .4rem; font-size: .85rem; font-weight: 600; }
+.tag.warn { border-color: var(--warn); color: var(--warn); }
+.scada-line { display: flex; flex-wrap: wrap; gap: .3rem 1.4rem; margin-bottom: .8rem; }
+.scada-line b { font-variant-numeric: tabular-nums; }
+
+/* timeline */
+.log { list-style: none; margin: 0; padding: 0; }
+.log li { display: grid; grid-template-columns: 4.6rem minmax(0, 1fr); gap: .1rem .7rem; padding: .4rem 0; border-top: 1px solid var(--line); }
+.log time { color: var(--muted); font-variant-numeric: tabular-nums; }
+.log .src { color: var(--muted); font-size: .85rem; }
+.hash { font-family: ui-monospace, Consolas, monospace; font-size: .85rem; word-break: break-all; }
+
+/* rail forms */
+form.entry { display: grid; gap: .5rem; margin-bottom: .9rem; }
+form.entry label { font-weight: 600; font-size: .95rem; }
+.row { display: flex; gap: .5rem; flex-wrap: wrap; align-items: end; }
+.row > * { flex: 1 1 auto; }
+input[type=text], input[type=number], input[type=password], select { min-height: 44px; padding: .4rem .6rem; border: 2px solid var(--line-strong); border-radius: 6px; background: var(--bg); width: 100%; }
+.stack { display: grid; gap: .55rem; }
+
+/* playbook */
+.phase { margin-bottom: 1rem; }
+.phase h3 { display: flex; align-items: center; gap: .5rem; margin-bottom: .3rem; }
+.phase.current h3 { color: var(--state, var(--text)); }
+.step { display: grid; grid-template-columns: 1.7rem minmax(0, 1fr) auto; gap: .5rem; padding: .5rem 0; border-top: 1px solid var(--line); align-items: start; }
+.step svg { width: 1.3rem; height: 1.3rem; margin-top: .15rem; }
+.step.done .tx { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+.step.overdue .meta { color: var(--alarm); font-weight: 700; }
+.step .meta { font-size: .88rem; color: var(--muted); }
+.step.upcoming { opacity: .7; }
+
+/* drills */
+.scn { padding: .6rem 0; border-top: 1px solid var(--line); display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: .2rem .8rem; align-items: center; }
+.scn .d { grid-column: 1; color: var(--muted); font-size: .92rem; }
+.attack-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: .5rem; }
+.result { border-left: 5px solid var(--drill); padding: .4rem .8rem; margin: .6rem 0; background: color-mix(in srgb, var(--drill) 10%, var(--panel)); }
+
+#toast { position: fixed; left: 50%; bottom: 1rem; transform: translateX(-50%); max-width: min(92vw, 560px); background: var(--text); color: var(--bg); padding: .7rem 1.1rem; border-radius: 6px; font-weight: 700; z-index: 20; }
+#toast[hidden] { display: none; }
+#toast.err { background: var(--alarm); color: var(--on-state); }
+body.lost main, body.lost header.top { filter: grayscale(1); opacity: .55; }
+dialog { background: var(--panel); color: var(--text); border: 2px solid var(--line-strong); border-radius: 8px; padding: 1.2rem; max-width: 420px; width: 92vw; }
+dialog::backdrop { background: rgba(0,0,0,.6); }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+@media (max-width: 640px) {
+  #verdict { grid-template-columns: auto 1fr; }
+  #verdict .acts { grid-column: 1 / -1; grid-row: auto; flex-direction: row; flex-wrap: wrap; }
+  #verdict .acts .btn { flex: 1 1 auto; }
+}
+</style>
+</head>
+<body data-state="none">
+<div id="webdemo-note" style="padding:.55rem 1rem;font:500 .9rem/1.4 system-ui,sans-serif;background:Canvas;color:CanvasText;border-bottom:1px solid GrayText"><b>Web demo.</b> This page replays recorded runs of the real HydroWitness engines on a simulated plant. Pick a drill on the right, and tick the box first if you want a scripted operator to check the pump. Breaking things yourself and entering your own readings need the downloadable version.</div>
+<a class="skip" href="#main">Skip to the trust state</a>
+
+<div id="lost" class="strip" role="alert" hidden></div>
+<div id="drillbar" class="strip" hidden></div>
+<div id="livebar" class="strip" hidden></div>
+
+<header class="top">
+  <div><h1>HydroWitness</h1> <span class="site" id="site"></span></div>
+  <div class="right">
+    <span class="num muted" id="clocktime"></span>
+    <button class="btn quiet small" data-act="theme" type="button" aria-label="Switch between night and day colors">Night / day</button>
+  </div>
+</header>
+
+<main id="main">
+  <section id="verdict" aria-labelledby="verdict-title"></section>
+  <div id="announce" class="sr" role="status" aria-live="assertive" aria-atomic="true"></div>
+
+  <div class="layout">
+    <div class="read">
+      <section id="clock" aria-labelledby="h-clock"></section>
+      <section id="why" aria-labelledby="h-why"></section>
+      <section id="witness" aria-labelledby="h-wit"></section>
+      <section id="timeline" aria-labelledby="h-log"></section>
+    </div>
+
+    <aside class="rail" aria-label="Actions">
+      <section id="playbook" aria-labelledby="h-pb"></section>
+      <section id="enter" aria-labelledby="h-enter">
+        <h2 id="h-enter">Enter what you see</h2>
+        <p class="muted small" style="margin-bottom:.8rem">Your own readings are the strongest evidence. Read the real gauge and sight glass, then type what they say.</p>
+        <div class="stack" style="margin-bottom:.9rem">
+          <label for="opname" style="font-weight:600">Your name</label>
+          <input id="opname" type="text" maxlength="40" autocomplete="name" placeholder="Name for the log">
+        </div>
+        <form class="entry" data-form="level">
+          <label for="lvl">Tank level at the sight glass (ft)</label>
+          <div class="row"><input id="lvl" type="number" step="0.01" inputmode="decimal" required><button class="btn" type="submit">Record tank level</button></div>
+        </form>
+        <form class="entry" data-form="gauge">
+          <label for="psi">Pressure on the gauge (psi)</label>
+          <div class="row"><input id="psi" type="number" step="0.1" inputmode="decimal" required><button class="btn" type="submit">Record gauge reading</button></div>
+        </form>
+        <form class="entry" data-form="pump">
+          <label for="pumpsel">Pump you are looking at</label>
+          <select id="pumpsel"></select>
+          <div class="row">
+            <button class="btn" type="submit" data-value="true">It is running</button>
+            <button class="btn" type="submit" data-value="false">It is stopped</button>
+          </div>
+        </form>
+        <form class="entry" data-form="flow">
+          <label for="flowsel">Water is moving from</label>
+          <div class="row"><select id="flowsel"></select><button class="btn" type="submit">Confirm flow</button></div>
+          <span class="muted small">A running motor is not proof of water. Confirm only if you see flow or pressure rising.</span>
+        </form>
+        <form class="entry" data-form="call">
+          <label for="addr">Customer calls about low pressure</label>
+          <div class="row"><input id="addr" type="text" maxlength="80" placeholder="Street address" required><button class="btn" type="submit">Add call</button></div>
+        </form>
+      </section>
+      <section id="drill" aria-labelledby="h-drill"></section>
+    </aside>
+  </div>
+</main>
+
+<div id="toast" role="status" hidden></div>
+<dialog id="tokdlg">
+  <form method="dialog" data-form="token" class="stack">
+    <h2 style="margin:0">Access token needed</h2>
+    <p class="muted small">This HydroWitness server asks for a token. It stays in this browser tab only.</p>
+    <label for="tok" style="font-weight:600">Token</label>
+    <input id="tok" type="password" autocomplete="off">
+    <button class="btn primary" type="submit">Save token</button>
+  </form>
+</dialog>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+    <rect width="8" height="8" fill="var(--water-dead)"/><rect width="3.5" height="8" fill="var(--water)"/>
+  </pattern></defs></svg>
+
+<script>
+"use strict";
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+const store = {
+  get(k) { try { return localStorage.getItem(k) || ""; } catch { return ""; } },
+  set(k, v) { try { localStorage.setItem(k, v); } catch { /* storage can be blocked */ } },
+};
+let token = ""; try { token = sessionStorage.getItem("hw_token") || ""; } catch { /* ignore */ }
+/* The start scripts open the page as /#token=... so nobody has to type it. A fragment is never sent to the server;
+   it is stored for this tab and removed from the address bar at once. */
+{ const m = /^#token=([A-Za-z0-9_-]+)$/.exec(location.hash);
+  if (m) { token = m[1]; try { sessionStorage.setItem("hw_token", token); } catch { /* ignore */ }
+    try { history.replaceState(null, "", location.pathname + location.search); } catch { /* ignore */ } } }
+const S = { s: null, profile: null, ok: 0, fails: 0, prevState: null, scenarios: null, polls: 0 };
+
+/* ---------------------------------------------------------------- icons: every state has its own shape */
+const ICON = {
+  green: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="11" fill="currentColor"/><path d="M6.5 12.5l3.5 3.5 7.5-8" fill="none" stroke="var(--on-state)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  amber: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.8L23 21.5H1z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 9v6M12 17.6v.4" stroke="var(--on-state)" stroke-width="2.6" stroke-linecap="round"/></svg>',
+  red: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 1.5h8L22.5 8v8L16 22.5H8L1.5 16V8z" fill="currentColor"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7" stroke="var(--on-state)" stroke-width="2.6" stroke-linecap="round"/></svg>',
+  none: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="4 3"/></svg>',
+  yes: '<svg viewBox="0 0 24 24" aria-hidden="true" style="color:var(--ok)"><circle cx="12" cy="12" r="11" fill="currentColor"/><path d="M6.5 12.5l3.5 3.5 7.5-8" fill="none" stroke="var(--on-state)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  no: '<svg viewBox="0 0 24 24" aria-hidden="true" style="color:var(--alarm)"><path d="M8 1.5h8L22.5 8v8L16 22.5H8L1.5 16V8z" fill="currentColor"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7" stroke="var(--on-state)" stroke-width="2.6" stroke-linecap="round"/></svg>',
+  open: '<svg viewBox="0 0 24 24" aria-hidden="true" style="color:var(--muted)"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>',
+  due: '<svg viewBox="0 0 24 24" aria-hidden="true" style="color:var(--warn)"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2.6"/><circle cx="12" cy="12" r="4.2" fill="currentColor"/></svg>',
+  late: '<svg viewBox="0 0 24 24" aria-hidden="true" style="color:var(--alarm)"><path d="M12 1.8L23 21.5H1z" fill="currentColor"/><path d="M12 9v6M12 17.6v.4" stroke="var(--on-state)" stroke-width="2.6" stroke-linecap="round"/></svg>',
+};
+
+/* ------------------------------------------------------------------------------------------- api */
+async function api(path, opts = {}) {
+  const headers = { ...(opts.headers || {}) };
+  if (token) headers.Authorization = "Bearer " + token;
+  if (opts.body !== undefined && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
+  const res = await fetch(path, { ...opts, headers, body: opts.body === undefined ? undefined : JSON.stringify(opts.body) });
+  if (res.status === 401) { askToken(); throw new Error("auth"); }
+  if (!res.ok) {
+    let msg = res.statusText;
+    try { const d = await res.json(); msg = typeof d.detail === "string" ? d.detail : d.detail ? d.detail.map(x => x.msg).join(", ") : msg; } catch { /* keep status text */ }
+    throw new Error(msg);
+  }
+  return res;
+}
+function askToken() { const d = $("#tokdlg"); if (!d.open) d.showModal(); }
+function toast(msg, bad = false) {
+  const t = $("#toast"); t.textContent = msg; t.className = bad ? "err" : ""; t.hidden = false;
+  clearTimeout(toast.h); toast.h = setTimeout(() => { t.hidden = true; }, bad ? 6000 : 3500);
+}
+async function act(label, fn) {
+  try { await fn(); toast(label); poll(true); } catch (e) { if (e.message !== "auth") toast(e.message, true); }
+}
+const opname = () => ($("#opname").value || "").trim() || "operator";
+
+/* ---------------------------------------------------------------------------- small formatters */
+function dur(sec) {
+  if (sec == null) return "unknown";
+  sec = Math.max(0, Math.round(sec));
+  if (sec < 90) return sec + " s";
+  const m = Math.round(sec / 60);
+  if (m < 90) return m + " min";
+  return Math.floor(m / 60) + " h " + (m % 60) + " min";
+}
+const pct = x => Math.round((x ?? 0) * 100) + "%";
+const hhmm = t => new Date(t).toLocaleTimeString([], { hour12: false });
+const FLAG = {
+  scada_stale: "SCADA has stopped updating.", no_scada_data: "HydroWitness has no SCADA data yet.",
+  messages_rejected: "Messages to the system failed security checks.", operator_contradiction: "An operator's own reading disagrees with the screen.",
+};
+function flagText(f) {
+  if (f.startsWith("node_silent:")) return "Witness Node " + f.split(":")[1] + " has gone quiet.";
+  return FLAG[f] || f;
+}
+const RUNNING = v => (v ? "running" : "stopped");
+
+/* ---------------------------------------------------------------------------------- rendering */
+function setHTML(el, html) {
+  if (el._h === html) return;
+  const a = document.activeElement, key = a && el.contains(a) ? a.dataset.focus : null;
+  el.innerHTML = html; el._h = html;
+  if (key) { const n = el.querySelector(`[data-focus="${key}"]`); if (n) n.focus(); }
+}
+
+function renderChrome(s) {
+  const st = s.trust.state;
+  document.body.dataset.state = st;
+  $("#site").textContent = s.site;
+  $("#clocktime").textContent = s.now_text + (s.source === "drill" ? " (simulated)" : "");
+  // lost contact
+  const lost = $("#lost"), gone = S.fails >= 3;
+  document.body.classList.toggle("lost", gone);
+  lost.hidden = !gone;
+  if (gone) lost.textContent = "Lost contact with the HydroWitness server. Last update " + (S.ok ? hhmm(S.ok) : "never") + ". Do not rely on this screen.";
+  // drill / live bars
+  const db = $("#drillbar"), lb = $("#livebar");
+  if (s.source === "drill") {
+    db.hidden = false;
+    setHTML(db, `<strong>Drill: simulated plant.</strong><span>${esc(s.drill.name)}</span><span class="muted">Nothing here touches the real system or its log.</span>
+      <button class="btn small" data-act="drill-stop" type="button" data-focus="drillbar-exit">Exit drill</button>`);
+    const L = s.live_summary;
+    lb.hidden = !L.armed;
+    lb.className = "strip" + (L.state === "red" ? " bad" : L.state === "amber" ? " warn" : "");
+    setHTML(lb, L.state === "green" ? `<span>Real system is green.</span>` :
+      `<span>Real system is ${esc(L.state.toUpperCase())}: ${esc(L.headline || (L.flags[0] ? flagText(L.flags[0]) : "check it"))}</span>
+       <button class="btn small" data-act="drill-stop" type="button" data-focus="livebar-exit">Exit drill and respond</button>`);
+  } else { db.hidden = true; lb.hidden = true; }
+}
+
+function renderVerdict(s) {
+  const t = s.trust, st = t.state, el = $("#verdict");
+  const headline = { green: "Screen and witnesses agree", amber: "Check the screen against the pump", red: "Do not trust the screen" }[st];
+  const why = t.cards[0] ? t.cards[0].title + "." : "";
+  const flags = t.flags.map(flagText).join(" ");
+  let sub;
+  if (st === "green") sub = "Every independent reading matches what SCADA reports.";
+  else if (st === "red") sub = `Read the gauge and the sight glass yourself. The clock below runs on the last trusted tank level. ${why} ${flags}`;
+  else sub = `Go and look at the pump before you rely on the screen. ${why} ${flags}`;
+  let latch = "";
+  if (t.latched && t.raw_state === "green") {
+    const need = Math.round((S.profile?.clean_period_s ?? 1800) / 60);
+    latch = `The evidence has cleared, but HydroWitness stays ${st} until someone acknowledges it and ${need} minutes pass clean${t.clean_for_s != null ? " (" + dur(t.clean_for_s) + " so far)" : ""}.`;
+  }
+  const acts = t.needs_ack ? `<button class="btn primary" type="button" data-act="ack" data-focus="ack">Acknowledge</button>` :
+    (t.latched ? `<span class="small muted">Acknowledged. Waiting for the clean period.</span>` : "");
+  const th = t.thresholds, max = 4, w = Math.min(t.score, max) / max * 100;
+  const meter = `<div class="meter" role="img" aria-label="Evidence score ${t.score.toFixed(1)}. Amber at ${th.amber}, red at ${th.red}.">
+      <div class="score">Evidence score <b class="num">${t.score.toFixed(1)}</b></div>
+      <div class="track"><div class="fill" style="width:${w}%"></div><div class="tick" style="left:${th.amber / max * 100}%"></div><div class="tick" style="left:${th.red / max * 100}%"></div></div>
+      <div class="labels"><span style="left:${th.amber / max * 100}%">amber ${th.amber}</span><span style="left:${th.red / max * 100}%">red ${th.red}</span></div></div>`;
+  setHTML(el, `<div class="icon">${ICON[st]}</div><div class="title" id="verdict-title">${esc(headline)}</div>
+    <p class="sub">${esc(sub)} ${esc(latch)}</p><div class="acts">${acts}</div>${meter}`);
+  if (S.prevState !== st) {
+    $("#announce").textContent = `${headline}. ${sub}`;
+    if (S.prevState && st !== "green") { el.classList.remove("flash"); void el.offsetWidth; el.classList.add("flash"); }
+  }
+  S.prevState = st;
+}
+
+function tankSvg() {
+  return `<svg viewBox="0 0 170 262" role="img" aria-labelledby="tank-t"><title id="tank-t">Water in the tank above the line where the farthest customer drops below minimum pressure</title>
+    <clipPath id="tankclip"><rect x="14" y="10" width="100" height="236" rx="6"/></clipPath>
+    <g clip-path="url(#tankclip)">
+      <rect id="tk-dead" class="tank-dead" x="14" y="246" width="100" height="0"/>
+      <rect id="tk-water" class="tank-water" x="14" y="246" width="100" height="0"/>
+      <rect id="tk-band" class="tank-band" x="14" y="246" width="100" height="0"/>
+    </g>
+    <rect class="tank-wall" x="14" y="10" width="100" height="236" rx="6"/>
+    <line id="tk-line" class="tank-line" x1="8" x2="122" y1="246" y2="246"/>
+    <text id="tk-l1" class="tank-lbl alarm" x="124" y="246"></text>
+    <text id="tk-l2" class="tank-lbl strong" x="124" y="246"></text>
+    <text id="tk-top" class="tank-lbl" x="124" y="16"></text>
+  </svg>`;
+}
+function updateTank(c) {
+  const p = S.profile; if (!p || !$("#tk-water")) return;
+  const H = p.tank_height_ft || 30, top = 10, bot = 246, hpx = bot - top;
+  const Y = ft => bot - Math.max(0, Math.min(ft, H)) / H * hpx;
+  const lmin = c.l_min_ft, lv = c.level_ft;
+  const water = $("#tk-water"), dead = $("#tk-dead"), band = $("#tk-band");
+  if (lmin != null) { dead.style.y = Y(lmin) + "px"; dead.style.height = (bot - Y(lmin)) + "px"; }
+  if (lv != null && lmin != null) {
+    water.style.y = Y(lv) + "px"; water.style.height = Math.max(0, Y(lmin) - Y(lv)) + "px";
+    const u = c.uncertainty_ft || 0; band.style.y = Y(lv + u) + "px"; band.style.height = Math.max(0, Y(lv - u) - Y(lv + u)) + "px";
+  } else { water.style.height = "0px"; band.style.height = "0px"; }
+  water.classList.toggle("model", !!c.needs_operator_reading);
+  if (lmin != null) {
+    $("#tk-line").setAttribute("y1", Y(lmin)); $("#tk-line").setAttribute("y2", Y(lmin));
+    $("#tk-l1").setAttribute("y", Y(lmin) + 4); $("#tk-l1").textContent = (p.min_pressure_psi ?? 20) + " psi line";
+  }
+  const l2 = $("#tk-l2");
+  if (lv != null) { l2.setAttribute("y", Math.max(Y(lv) + 4, 30)); l2.textContent = lv.toFixed(1) + " ft"; } else l2.textContent = "";
+  $("#tk-top").textContent = H + " ft";
+}
+
+function renderClock(s) {
+  const c = s.clock, el = $("#clock"), p = S.profile;
+  if (!el.dataset.built) {
+    el.innerHTML = `<h2 id="h-clock">Time until the farthest customer falls below ${p?.min_pressure_psi ?? 20} psi</h2><div class="clock"><div id="tankbox">${tankSvg()}</div><div id="clocktxt"></div></div>`;
+    el.dataset.built = "1"; el.dataset.psi = p?.min_pressure_psi ?? 20;
+  }
+  const h = $("#h-clock"); h.textContent = `Time until the farthest customer falls below ${p?.min_pressure_psi ?? 20} psi`;
+  let body;
+  if (!c.ok) {
+    body = `<p class="worst" style="font-size:1.8rem">No clock yet</p><p>${esc(c.basis)}</p>`;
+  } else {
+    body = `<dl><dt class="k">Worst case: peak demand${p?.peak_demand_gpm ? " (" + Math.round(p.peak_demand_gpm) + " gpm)" : ""}, no inflow we can prove</dt><dd class="worst num">${esc(c.worst_text)}</dd>
+      <dt class="k">Expected: typical demand for this hour</dt><dd class="expected num">${esc(c.expected_text)}</dd></dl>
+      <p class="small muted">Based on ${esc(c.basis)}${c.uncertainty_ft ? `, give or take ${c.uncertainty_ft.toFixed(1)} ft` : ""}. ${c.credited_pumps.length ? "Inflow counted from " + esc(c.credited_pumps.join(", ")) + " because someone confirmed water moving." : "No pump is counted as adding water until a witness shows it moving."}</p>
+      <p class="small muted">Demand above that peak (a main break, fire flow) would drain the tank faster. Read the tank to re-anchor this clock.</p>`;
+  }
+  if (c.needs_operator_reading) body += `<div class="callout"><strong>This is a model, not a measurement.</strong> Read the sight glass and enter it.
+      <div style="margin-top:.5rem"><button class="btn small" type="button" data-act="focus-level">Enter tank level</button></div></div>`;
+  setHTML($("#clocktxt"), body);
+  updateTank(c);
+}
+
+function renderWhy(s) {
+  const t = s.trust, el = $("#why");
+  const rules = s.rules, firing = rules.filter(r => r.fired).length;
+  let list;
+  if (!t.cards.length) list = `<p class="empty">Nothing disagrees with SCADA right now.</p>`;
+  else list = t.cards.map(c => `<div class="ev"><div class="pts" aria-label="${c.contribution.toFixed(1)} points">+${c.contribution.toFixed(1)}</div>
+      <div class="t">${esc(c.title)}</div><div class="d">${esc(c.text)}</div></div>`).join("");
+  const info = (t.info_cards || []).map(c => `<div class="ev"><div class="pts" style="color:var(--muted)" aria-hidden="true">i</div><div class="t">${esc(c.title)}</div><div class="d">${esc(c.text)}</div></div>`).join("");
+  const rl = rules.map(r => `<div class="rule">${r.fired ? ICON.no : ICON.yes}<div><b>${esc(r.name)}</b>${r.fired ? `<div class="muted small">${esc(r.explanation)}</div>` : ""}</div></div>`).join("");
+  const open = el.querySelector("details")?.open ? " open" : "";
+  setHTML(el, `<h2 id="h-why">Why this state</h2>${list}${info}
+    <details class="rules"${open}><summary>Screen self-checks: ${firing === 0 ? "all 7 quiet" : firing + " of 7 flagging"}</summary>${rl}
+    <p class="muted small" style="margin-top:.5rem">These checks only compare SCADA with itself. A careful forgery passes all of them, which is why the witnesses exist.</p></details>`);
+}
+
+function renderWitness(s) {
+  const p = S.profile; if (!p) return;
+  const sc = s.scada, el = $("#witness");
+  const line = sc ? `<div class="scada-line"><span>Screen updated <b class="num">${dur(sc.age_s)}</b> ago ${sc.stale ? '<span class="tag warn">stale</span>' : ""}</span>
+      <span>Tank <b>${sc.tank_level_ft?.toFixed(2) ?? "n/a"}</b> ft</span><span>Pressure <b>${sc.pressure_psi?.toFixed(1) ?? "n/a"}</b> psi</span><span>Demand <b>${sc.demand_gpm?.toFixed(0) ?? "n/a"}</b> gpm</span></div>`
+    : `<p class="empty">No SCADA data has arrived.</p>`;
+  const rows = p.pumps.map(pm => {
+    const claim = sc?.pump_status?.[pm.id], flow = sc?.pump_flow_gpm?.[pm.id];
+    const nd = s.nodes.find(n => n.pump_id === pm.id);
+    const man = s.manual_recent.find(m => m.kind === "pump_running" && m.pump_id === pm.id);
+    const nodeKnown = nd && !nd.silent && (nd.state === "RUNNING" || nd.state === "STOPPED");
+    const nodeRun = nodeKnown ? nd.state === "RUNNING" : null;
+    const clash = (nodeRun != null && claim != null && nodeRun !== !!claim) || (man && claim != null && !!man.value !== !!claim);
+    let nodeTxt;
+    if (!nd) nodeTxt = `<span class="muted">No node on this pump</span>`;
+    else if (nd.silent) nodeTxt = `<span class="what">Silent</span> <span class="tag warn">no messages for ${dur(nd.last_seen_age_s)}</span>`;
+    else if (nd.state == null) nodeTxt = `<span class="muted">Waiting for the first message</span>`;
+    else nodeTxt = `<span class="what">${esc(nd.state.toLowerCase())}</span> <span class="num muted">${pct(nd.confidence)}</span><div class="small muted">vibration ${esc((nd.acc_state || "").toLowerCase())}, sound ${esc((nd.mic_state || "").toLowerCase())}</div>
+        ${nd.mains_ok === false ? '<span class="tag warn">on backup power</span>' : ""}`;
+    return `<div class="pump${clash ? " bad" : ""}"><div class="head">${clash ? ICON.no : (nodeKnown || man ? ICON.yes : ICON.open)}<h3>${esc(pm.name || pm.id)}</h3>
+        <span class="small">${clash ? "Screen and witness disagree" : nodeKnown || man ? "Screen and witnesses agree" : "No witness reading yet"}</span></div>
+      <div class="cols">
+        <div><div class="who">Screen says</div><div class="what">${claim == null ? "unknown" : RUNNING(claim)}</div><div class="small muted num">${flow != null ? flow.toFixed(0) + " gpm" : ""}</div></div>
+        <div><div class="who">Witness Node${nd ? " " + esc(nd.node_id) : ""}</div>${nodeTxt}</div>
+        <div><div class="who">You saw</div>${man ? `<span class="what">${RUNNING(man.value)}</span><div class="small muted">${esc(man.operator)}</div>` : '<span class="muted">No reading</span>'}</div>
+      </div></div>`;
+  }).join("");
+  setHTML(el, `<h2 id="h-wit">Screen against witnesses</h2>${line}${rows}`);
+  // keep pump pickers in the entry forms current
+  for (const id of ["#pumpsel", "#flowsel"]) {
+    const sel = $(id); const html = p.pumps.map(pm => `<option value="${esc(pm.id)}">${esc(pm.name || pm.id)}</option>`).join("");
+    if (sel._h !== html) { const v = sel.value; sel.innerHTML = html; sel._h = html; if (v) sel.value = v; }
+  }
+}
+
+const REASON = { bad_signature: "wrong signature", replay: "repeated or old message", stale_timestamp: "clock too far off", unknown_node: "unknown node", malformed: "malformed" };
+function describe(r) {
+  const c = r.content || {};
+  switch (r.type) {
+    case "trust_state": return `State changed from ${c.from} to ${c.to}. ${(c.cards || []).join("; ") || (c.flags || []).map(flagText).join(" ")}`;
+    case "claim_change": return `The screen now says ${c.pump} is ${String(c.now).toLowerCase()}.`;
+    case "node_state": return `${r.source.slice(5)} reports ${String(c.state).toLowerCase()} (${pct(c.confidence)}).`;
+    case "manual_reading": {
+      const who = c.operator || "operator";
+      if (c.kind === "tank_level_ft") return `${who} read the tank at ${c.value} ft.`;
+      if (c.kind === "gauge_psi") return `${who} read the gauge at ${c.value} psi.`;
+      if (c.kind === "pump_running") return `${who} saw ${c.pump_id} ${RUNNING(c.value)}.`;
+      if (c.kind === "flow_confirmed") return `${who} confirmed water moving from ${c.pump_id}.`;
+      return `Customer call from ${c.address || "an unnamed address"}.`;
+    }
+    case "playbook_started": return c.manual ? "Playbook started by hand." : "Playbook started automatically.";
+    case "playbook_closed": return "Playbook closed.";
+    case "playbook_step": return `Step ${c.step} done: ${c.text}`;
+    case "acknowledged": return `Acknowledged while ${c.state}.`;
+    case "node_message_rejected": return `Rejected a node message: ${REASON[c.reason] || c.reason}.`;
+    case "profile_changed": return `Site setup changed to ${c.site}.`;
+    default: return r.type;
+  }
+}
+function renderTimeline(s) {
+  const el = $("#timeline");
+  const items = s.timeline.filter(r => r.type !== "digest").slice(0, 14);
+  const open = el.querySelector("[data-verify-out]")?.innerHTML || "";
+  const list = items.length ? `<ul class="log">${items.map(r => `<li><time>${esc(r.time)}</time><div>${esc(describe(r))}<div class="src">${esc(r.source)}</div></div></li>`).join("")}</ul>` : `<p class="empty">No events yet.</p>`;
+  setHTML(el, `<h2 id="h-log">What happened</h2>${list}
+    <div class="row" style="margin-top:.9rem;align-items:center">
+      <button class="btn small quiet" type="button" data-act="verify" data-focus="verify">Check the log is untampered</button>
+      <button class="btn small quiet" type="button" data-act="export" data-focus="export">Download the evidence log</button></div>
+    <p class="small muted" style="margin-top:.5rem">${s.log.count} records${s.source === "drill" ? " in the drill log" : ""}. Latest fingerprint: <span class="hash">${esc((s.log.head_hash || "").slice(0, 16))}</span></p>
+    <p class="small" data-verify-out role="status">${open}</p>`);
+}
+
+function renderPlaybook(s) {
+  const pb = s.playbook, el = $("#playbook"), st = s.trust.state;
+  if (!pb.active) {
+    setHTML(el, `<h2 id="h-pb">Lockout playbook</h2><p class="muted">It starts by itself when the state turns amber or red. You can start it now to walk through it.</p>
+      <div style="margin-top:.7rem"><button class="btn" type="button" data-act="pb-start" data-focus="pbstart">Start the playbook</button></div>
+      <p class="small muted" style="margin-top:.7rem">${esc(pb.disclaimer)}</p>`);
+    return;
+  }
+  const iconFor = x => x.status === "done" ? ICON.yes : x.status === "overdue" ? ICON.late : x.status === "due" ? ICON.due : ICON.open;
+  const phases = pb.phases.map(ph => `<div class="phase${ph.name === pb.current_phase ? " current" : ""}"><h3>${esc(ph.name)}${ph.done ? " (done)" : ""}</h3>
+      ${ph.steps.map(x => `<div class="step ${x.status}">${iconFor(x)}<div><div class="tx">${esc(x.text)}</div>
+        <div class="meta">${esc(x.owner)}${x.status === "done" ? ", done by " + esc(x.done_by) : x.target ? ", " + esc(x.target) : ""}${x.status === "overdue" ? " (overdue)" : ""}</div></div>
+        ${x.status === "done" ? "" : `<button class="btn small" type="button" data-act="pb-step" data-id="${esc(x.id)}" data-focus="step-${esc(x.id)}">Mark done</button>`}</div>`).join("")}</div>`).join("");
+  setHTML(el, `<h2 id="h-pb">Lockout playbook</h2><p class="small muted" style="margin-bottom:.8rem">Started ${Math.floor(pb.elapsed_min)} min ago ${pb.started_by === "automatic" ? "automatically" : "by " + esc(pb.started_by)}. Targets follow the countdown clock.</p>
+    ${phases}<p class="small muted">${esc(pb.disclaimer)}</p>`);
+}
+
+const SPEEDS = [1, 5, 10, 30];
+function renderDrill(s) {
+  const el = $("#drill");
+  if (s.source !== "drill") {
+    const list = (S.scenarios || []).map(x => `<div class="scn"><h3>${esc(x.name)}</h3><button class="btn small" type="button" data-act="drill-start" data-id="${esc(x.id)}" data-focus="start-${esc(x.id)}">Start</button><p class="d">${esc(x.summary)}</p></div>`).join("");
+    setHTML(el, `<h2 id="h-drill">Practice a lockout</h2><p class="muted small" style="margin-bottom:.6rem">Drills run the real engines against a simulated plant. They never write to the real log.</p>
+      <label class="small"><input type="checkbox" id="opscript" ${el.querySelector("#opscript")?.checked ? "checked" : ""}> Play a scripted operator who checks the pump</label>${list || '<p class="empty">Loading scenarios.</p>'}`);
+    return;
+  }
+  const d = s.drill, m = d.metrics;
+  const attack = d.attack_started ? `${Math.round(d.seconds_since_attack)} s after the attack started` : "Nothing has been broken yet";
+  const res = [];
+  res.push(`<p>${attack}.</p>`);
+  if (d.attack_started) {
+    res.push(`<p>First amber: <b>${m.first_amber_s == null ? "not reached" : m.first_amber_s + " s"}</b>. First red: <b>${m.first_red_s == null ? "not reached" : m.first_red_s + " s"}</b>.</p>`);
+    if (m.first_red_s == null && m.first_amber_s != null) res.push(`<p class="muted small">Red needs a second witness. One witness alone is not enough to override the screen. Start this drill again with the scripted operator ticked to add one.</p>`);
+    if (m.false_alarms_before_attack) res.push(`<p class="small" style="color:var(--alarm)">${m.false_alarms_before_attack} state change(s) happened before anything was broken.</p>`);
+  }
+  const tl = d.timeline.slice(0, 6).map(x => `<li><time class="num">+${Math.round(x.after_attack_s)} s</time><div>${esc(x.label)}</div></li>`).join("");
+  const pumps = (S.profile?.pumps || []).map(p => `<option value="${esc(p.id)}">${esc(p.name || p.id)}</option>`).join("");
+  const nodes = s.nodes.map(n => `<option value="${esc(n.node_id)}">Node ${esc(n.node_id)}</option>`).join("");
+  const A = (a, label, arg) => `<button class="btn small" type="button" data-act="inject" data-action="${a}" ${arg ? `data-arg="${arg}"` : ""} data-focus="inj-${a}">${label}</button>`;
+  const speed = SPEEDS.map(v => `<option value="${v}" ${v === d.speed ? "selected" : ""}>${v}x</option>`).join("");
+  const keepP = $("#atk-pump")?.value, keepN = $("#atk-node")?.value;
+  setHTML(el, `<h2 id="h-drill">Drill: ${esc(d.name)}</h2><p class="small muted">${esc(d.summary)}</p>
+    <div class="result" role="status">${res.join("")}</div>
+    ${tl ? `<ul class="log" style="margin-bottom:.8rem">${tl}</ul>` : ""}
+    <div class="row" style="margin-bottom:.9rem">
+      <button class="btn small quiet" type="button" data-act="drill-pause" data-focus="pause">${d.running ? "Pause" : "Resume"}</button>
+      <button class="btn small quiet" type="button" data-act="drill-step" data-focus="step30">Skip 30 s</button>
+      <select id="speedsel" aria-label="Drill speed" style="max-width:6rem">${speed}</select></div>
+    <h3 style="margin-bottom:.5rem">Break something</h3>
+    <div class="row" style="margin-bottom:.5rem"><select id="atk-pump" aria-label="Pump">${pumps}</select><select id="atk-node" aria-label="Witness Node">${nodes}</select></div>
+    <div class="attack-grid">
+      ${A("freeze", "Freeze the screen")}${A("dark", "Cut remote access")}${A("replay", "Replay old data")}${A("spoof", "Forge the screen")}${A("normal", "Restore the screen")}
+      ${A("pump_off", "Force pump off")}${A("pump_on", "Force pump on")}${A("pump_auto", "Give pump back")}${A("jam_node", "Silence the node")}
+      ${A("power_loss", "Power outage")}${A("power_back", "Power back")}${A("valve_close", "Close a valve")}
+    </div>
+    <div style="margin-top:1rem"><button class="btn" type="button" data-act="drill-stop" data-focus="drillstop">Exit drill</button></div>`);
+  if (keepP) $("#atk-pump").value = keepP; if (keepN) $("#atk-node").value = keepN;
+}
+
+function render(s) {
+  renderChrome(s); renderVerdict(s); renderClock(s); renderWhy(s); renderWitness(s); renderTimeline(s); renderPlaybook(s); renderDrill(s);
+}
+
+/* ---------------------------------------------------------------------------------------- loop */
+async function poll(once = false) {
+  try {
+    if (!S.profile || S.polls % 30 === 0) S.profile = await (await api("/api/profile")).json();
+    if (!S.scenarios) S.scenarios = (await (await api("/api/drill/scenarios")).json()).scenarios;
+    const s = await (await api("/api/state")).json();
+    S.s = s; S.ok = Date.now(); S.fails = 0; S.polls++;
+    render(s);
+  } catch (e) {
+    if (e.message !== "auth") { S.fails++; if (S.s) renderChrome(S.s); else { $("#lost").hidden = false; $("#lost").textContent = "Can't reach the HydroWitness server."; } }
+  }
+  if (!once) { clearTimeout(poll.h); poll.h = setTimeout(poll, document.hidden ? 4000 : 1000); }
+}
+
+/* ------------------------------------------------------------------------------------ actions */
+document.addEventListener("click", ev => {
+  const b = ev.target.closest("[data-act]"); if (!b) return;
+  const a = b.dataset.act;
+  if (a === "theme") {
+    const cur = document.documentElement.dataset.theme || (matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+    const nxt = cur === "dark" ? "light" : "dark"; document.documentElement.dataset.theme = nxt; store.set("hw_theme", nxt);
+  } else if (a === "ack") act("Acknowledged.", () => api("/api/ack", { method: "POST", body: { operator: opname() } }));
+  else if (a === "pb-start") act("Playbook started.", () => api("/api/playbook/start", { method: "POST", body: { operator: opname() } }));
+  else if (a === "pb-step") act("Step marked done.", () => api("/api/playbook/step/" + encodeURIComponent(b.dataset.id), { method: "POST", body: { operator: opname() } }));
+  else if (a === "focus-level") { $("#lvl").scrollIntoView({ block: "center" }); $("#lvl").focus(); }
+  else if (a === "drill-start") act("Drill started.", () => api("/api/drill/start", { method: "POST", body: { scenario: b.dataset.id, operator_script: !!$("#opscript")?.checked, speed: 5 } }));
+  else if (a === "drill-stop") act("Drill ended.", () => api("/api/drill/stop", { method: "POST" }));
+  else if (a === "drill-pause") act(S.s.drill.running ? "Drill paused." : "Drill resumed.", () => api("/api/drill/control", { method: "POST", body: { running: !S.s.drill.running } }));
+  else if (a === "drill-step") act("Skipped 30 s.", () => api("/api/drill/step?seconds=30", { method: "POST" }));
+  else if (a === "inject") {
+    const needsPump = ["pump_off", "pump_on", "pump_auto"].includes(b.dataset.action), needsNode = b.dataset.action === "jam_node";
+    const arg = needsPump ? $("#atk-pump").value : needsNode ? $("#atk-node").value : null;
+    act("Done: " + b.textContent.toLowerCase() + ".", () => api("/api/drill/inject", { method: "POST", body: { action: b.dataset.action, arg } }));
+  } else if (a === "verify") {
+    api("/api/log/verify").then(r => r.json()).then(v => {
+      const out = $("[data-verify-out]"); out.innerHTML = v.ok ? `Log verified: ${v.records} records, no gaps or edits.` : `<b style="color:var(--alarm)">Log check failed:</b> ${esc(v.message)}`;
+      $("#timeline")._h = null;
+    }).catch(e => e.message !== "auth" && toast(e.message, true));
+  } else if (a === "export") {
+    api("/api/log/export").then(r => r.blob()).then(bl => {
+      const u = URL.createObjectURL(bl), l = document.createElement("a"); l.href = u; l.download = "hydrowitness-evidence.jsonl"; l.click(); URL.revokeObjectURL(u);
+    }).catch(e => e.message !== "auth" && toast(e.message, true));
+  }
+});
+document.addEventListener("change", ev => {
+  if (ev.target.id === "speedsel") act("Speed set to " + ev.target.value + "x.", () => api("/api/drill/control", { method: "POST", body: { speed: Number(ev.target.value) } }));
+});
+$("#opname").value = store.get("hw_op"); $("#opname").addEventListener("input", e => store.set("hw_op", e.target.value));
+document.addEventListener("submit", ev => {
+  const f = ev.target.closest("[data-form]"); if (!f) return;
+  const kind = f.dataset.form;
+  if (kind === "token") { token = $("#tok").value.trim(); try { sessionStorage.setItem("hw_token", token); } catch { /* ignore */ } poll(true); return; }
+  ev.preventDefault();
+  const base = { operator: opname() };
+  let body, label;
+  if (kind === "level") { body = { ...base, kind: "tank_level_ft", value: Number($("#lvl").value) }; label = `Recorded tank level ${body.value} ft.`; }
+  else if (kind === "gauge") { body = { ...base, kind: "gauge_psi", value: Number($("#psi").value) }; label = `Recorded gauge reading ${body.value} psi.`; }
+  else if (kind === "pump") { const v = ev.submitter?.dataset.value === "true"; body = { ...base, kind: "pump_running", pump_id: $("#pumpsel").value, value: v }; label = `Recorded ${body.pump_id} ${RUNNING(v)}.`; }
+  else if (kind === "flow") { body = { ...base, kind: "flow_confirmed", pump_id: $("#flowsel").value, value: true }; label = `Confirmed flow from ${body.pump_id}.`; }
+  else if (kind === "call") { body = { ...base, kind: "customer_call", value: true, address: $("#addr").value.trim() }; label = "Added customer call."; }
+  act(label, async () => { await api("/api/manual", { method: "POST", body }); f.reset(); });
+});
+const savedTheme = store.get("hw_theme"); if (savedTheme) document.documentElement.dataset.theme = savedTheme;
+poll();
+</script>
+</body>
+</html>

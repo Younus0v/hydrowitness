@@ -1,0 +1,167 @@
+title: HydroWitness: when the screen lies, the pipes still tell the truth
+description: A read-only safety net for small water systems. It shows how long pressure will hold if SCADA goes dark, and warns you when SCADA's story disagrees with what the pumps are doing.
+scripts: assets/replay-logic.js, assets/replay.js
+---
+<section class="hero">
+  <div class="wrap">
+    <div class="seq">
+      <h1>When the screen lies, the pipes still tell the truth.</h1>
+      <p class="lede">HydroWitness is a read-only safety net for small water systems. It tells you how long your pressure will hold if SCADA goes dark, and warns you when SCADA's story disagrees with what the pumps are doing.</p>
+      <div class="cta">
+        <a class="btn primary" href="#demo">Watch a drill</a>
+        <a class="btn ghost" href="demo.html">Try the real dashboard</a>
+      </div>
+    </div>
+
+    <div class="demo" id="demo">
+      <fieldset class="scen">
+        <legend>Pick an attack</legend>
+        <button type="button" data-scen="frozen" aria-pressed="true">Frozen screen</button>
+        <button type="button" data-scen="replay" aria-pressed="false">Replayed data</button>
+        <button type="button" data-scen="forged" aria-pressed="false">Forged screen</button>
+      </fieldset>
+      <p class="blurb" id="blurb"></p>
+      <p class="timing" id="timing"></p>
+
+      <div class="box">
+        <div class="stage">
+          <section class="pane" aria-labelledby="p1">
+            <h3 id="p1">What SCADA says</h3>
+            <div class="hmi" role="img" aria-label="A mock SCADA screen showing the tank level, Pump 2 running and communications OK">
+              <div class="hmi-bar"><span>Demo Valley Water</span><span id="h-clock">14:02:00</span></div>
+              <dl class="hmi-grid">
+                <dt>Tank 1 level</dt><dd id="h-level">14.20 ft</dd>
+                <dt>Pump 1</dt><dd>STOPPED<small>0 gpm</small></dd>
+                <dt>Pump 2</dt><dd>RUNNING<small id="h-flow">183 gpm</small></dd>
+                <dt>Comms</dt><dd>OK</dd>
+                <dt>Alarms</dt><dd>None</dd>
+              </dl>
+              <svg id="h-trend" viewBox="0 0 200 52" preserveAspectRatio="none" aria-hidden="true">
+                <line x1="0" y1="26" x2="200" y2="26" stroke="#9FABAA" stroke-width="1" vector-effect="non-scaling-stroke" stroke-dasharray="3 3"/>
+                <polyline id="h-line" class="trace" points="" style="stroke:#26363D"/>
+              </svg>
+            </div>
+            <p class="hmi-cap">Tank level, last 60 seconds. This is what the operator sees.</p>
+          </section>
+
+          <section class="pane" aria-labelledby="p2">
+            <h3 id="p2">What the pipes say<small>A Witness Node clamped on Pump 2</small></h3>
+            <svg id="chart" class="chart" viewBox="0 0 400 226" role="img" aria-labelledby="chart-t">
+              <title id="chart-t">Strip chart of Pump 2 vibration and sound over time</title>
+              <g id="grid"></g>
+              <text class="lbl" x="4" y="14">Vibration</text>
+              <text class="lbl" x="4" y="124">Sound</text>
+              <line id="atk" x1="0" y1="20" x2="0" y2="206" stroke="#0B2530" stroke-width="1" stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/>
+              <polyline id="tr-vib" class="trace" points=""/>
+              <polyline id="tr-snd" class="trace" points=""/>
+              <g id="marks"></g>
+            </svg>
+            <p class="reading" id="reading"></p>
+          </section>
+
+          <section class="pane verdict" id="verdict" data-state="green" aria-labelledby="p3">
+            <h3 id="p3">What HydroWitness says</h3>
+            <div class="light" id="light" aria-hidden="true"></div>
+            <p class="vword" id="vword">Green</p>
+            <div style="display:contents" aria-live="polite" aria-atomic="false">
+              <p class="vhead" id="vhead">Screen and witnesses agree</p>
+              <p class="vact" id="vact">Nothing to do.</p>
+              <ul class="why" id="why"></ul>
+            </div>
+          </section>
+        </div>
+
+        <div class="controls">
+          <button class="play" id="play" type="button">Play</button>
+          <input id="t" type="range" min="-20" max="130" step="0.5" value="-20" aria-label="Time since the attack began">
+          <output class="tlabel" id="tlabel" for="t"></output>
+        </div>
+      </div>
+      <noscript><p class="fine">The drill replay needs JavaScript. The same numbers are in the results table on the Technology page.</p></noscript>
+      <p class="fine">A simulated plant and a simulated Witness Node, shown at 10 times speed. The amber and red times are the medians of five runs each from our saved drill results. The tank and pump numbers on the mock screen, and the exact shape of the traces, are illustrations. The slider's colors show how the trust light changes over the whole run. For the real dashboard, <a href="demo.html">open the Demo page</a>.</p>
+    </div>
+  </div>
+</section>
+
+<section class="strip" aria-label="Facts from our saved results">
+  <div class="wrap">
+    <p class="strip-label">From our saved results</p>
+    <div class="marquee">
+      <div class="track">
+        <span>0 false alarms in 10 simulated site-days</span>
+        <span>Frozen screen: red in 95 seconds</span>
+        <span>Never sends a command to the plant</span>
+        <span>Clock checked on 310 randomized EPANET systems</span>
+        <span>No pressure sensor to buy</span>
+        <span>Replayed data: red in 50 seconds</span>
+        <span>Alerts only to a private channel</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec">
+  <div class="wrap">
+    <div class="head rv">
+      <h2>A small system runs on one screen and a few people.</h2>
+      <p>Many small water systems have one or two operators and a single SCADA screen that reports what the pumps, tanks and valves are doing. When that screen freezes, goes dark or is tampered with, the operator is left reading a story they can't check.</p>
+    </div>
+    <div class="stats">
+      <div class="stat rv">
+        <b>11,100</b>
+        <p>parts per million. In February 2021 someone got into the computer system of a water plant in Oldsmar, Florida, and raised the sodium hydroxide level from 100 to 11,100 ppm. An operator watched the cursor move on screen and brought it back down (<a href="https://waterworld.com/residential-commercial/news/14306876/hacker-altered-chemicals-in-oldsmar-florida-water-supply">WaterWorld</a>).</p>
+      </div>
+      <div class="stat rv">
+        <b>Over 70%</b>
+        <p>of the water systems the EPA had surveyed since September 2023 failed to meet certain security standards, it said in May 2024. Many rural operators lack the money and staff to harden their systems (<a href="https://nextgov.com/cybersecurity/2024/05/more-70-surveyed-water-systems-failed-meet-epa-cyber-standards/396727">Nextgov</a>).</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec tight">
+  <div class="wrap">
+    <div class="head rv">
+      <h2>Four steps. None of them can touch the plant.</h2>
+      <p>HydroWitness only reads. It never sends a command to a pump, valve or controller, so adding it can't make the plant less safe.</p>
+    </div>
+    <ol class="steps">
+      <li class="step rv"><span class="n" aria-hidden="true">1</span><h3>Read</h3><p>What the plant says (SCADA), what people say (operator readings and customer calls), and what the equipment does (the Witness Node).</p></li>
+      <li class="step rv"><span class="n" aria-hidden="true">2</span><h3>Compare</h3><p>Seven consistency rules check whether the stories agree. A frozen value, a replayed pattern, or a pump that sounds stopped while the screen says it runs all count.</p></li>
+      <li class="step rv"><span class="n" aria-hidden="true">3</span><h3>Decide</h3><p>Green, amber or red, with the reasons in plain words. Once it turns red it stays red until a person clears it.</p></li>
+      <li class="step rv"><span class="n" aria-hidden="true">4</span><h3>Act</h3><p>A Lockout Playbook walks the operator through what to do next, alerts go to a private channel, and every step goes into a tamper-evident log.</p></li>
+    </ol>
+  </div>
+</section>
+
+<section class="sec tight">
+  <div class="wrap">
+    <div class="night rv">
+      <div class="two">
+        <div>
+          <h2>A clock that still runs when SCADA doesn't.</h2>
+          <p>From the tank level and a physical model, HydroWitness estimates how many minutes until pressure at the system's critical point falls below 20 psi. The worst case assumes peak demand and gives no credit for water coming in until a witness shows it moving.</p>
+          <div class="cta"><a class="btn on-night" href="how-it-works.html">See how it works</a></div>
+        </div>
+        <figure class="fig" style="margin:0">
+          <img src="assets/img/dash_red.webp" width="1290" height="1140" alt="The HydroWitness dashboard during the frozen-screen drill: a red banner reading Do not trust the screen, and a clock showing a worst case of 14 hours 10 minutes until the farthest customer falls below 20 psi.">
+        </figure>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec tight">
+  <div class="wrap">
+    <div class="night rv">
+      <div class="head" style="margin-bottom:24px">
+        <h2>Run a small water system?</h2>
+        <p style="color:var(--on-night)">Tell us how you would use this, and what would stop you. We are students and would rather learn from an operator than guess.</p>
+      </div>
+      <div class="cta">
+        <a class="btn on-night" href="contact.html">Contact us</a>
+        <a class="btn on-night" href="demo.html">Try the demo</a>
+      </div>
+    </div>
+  </div>
+</section>

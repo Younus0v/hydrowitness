@@ -1,0 +1,49 @@
+title: Demo · HydroWitness
+description: The real HydroWitness dashboard, running in your browser. Pick an attack drill and watch the trust light, the clock and the evidence log respond.
+scripts: assets/demo.js
+---
+<section class="page-head">
+  <div class="wrap seq">
+    <h1>The real dashboard, in your browser.</h1>
+    <p class="lede">This is the same page the software serves, driven by recordings of the real engines running each drill on a simulated plant. Pick an attack, press play on the drill, and watch the trust light, the clock and the log respond.</p>
+  </div>
+</section>
+
+<section class="sec tight">
+  <div class="wrap">
+    <fieldset class="chips" id="chips">
+      <legend>Pick a drill</legend>
+      <button type="button" data-scen="frozen_screen" aria-pressed="true">Frozen screen</button>
+      <button type="button" data-scen="replay" aria-pressed="false">Replayed data</button>
+      <button type="button" data-scen="forced_off_spoofed" aria-pressed="false">Forged screen</button>
+      <button type="button" data-scen="colorado_style" aria-pressed="false">Alarms off, access cut</button>
+      <button type="button" data-scen="power_loss_lookalike" aria-pressed="false">Power outage look-alike</button>
+      <button type="button" data-scen="hidden_valve_closure" aria-pressed="false">Valve closed out of sight</button>
+    </fieldset>
+    <label class="opt"><input type="checkbox" id="op"> Include a scripted operator who walks to the pump and reads it</label>
+
+    <div class="frame">
+      <iframe id="app" title="The HydroWitness dashboard replaying a drill" src="demo/app.html?scenario=frozen_screen" loading="lazy"></iframe>
+      <div class="frame-bar">
+        <span>Replaying recorded runs. Nothing here is sent anywhere.</span>
+        <a id="full" href="demo/app.html?scenario=frozen_screen">Open it full screen</a>
+      </div>
+    </div>
+    <noscript><p class="fine">The drill buttons need JavaScript. The dashboard above still opens on the frozen-screen drill.</p></noscript>
+  </div>
+</section>
+
+<section class="sec tight">
+  <div class="wrap cols">
+    <div class="prose rv">
+      <h2>What is real, and what is recorded.</h2>
+      <p>Each recording is the sequence of answers the real server gave while the real drill engine played one scenario against the simulated plant, one frame every five simulated seconds, for twelve simulated minutes.</p>
+      <p>It is one run, and its amber and red times are the same as the five-run medians on the <a href="technology.html#results">Technology page</a>. Other runs can differ by a few seconds. The plant and the Witness Nodes are simulated.</p>
+    </div>
+    <div class="prose rv">
+      <h2>What needs the downloadable version.</h2>
+      <p>Breaking things yourself and typing in your own readings change the plant, and a recording can't answer that. In the downloadable version you can do both: it runs on your own computer with one double-click, and it never leaves your machine.</p>
+      <p>It is available from the team on request: <a href="contact.html">contact us</a>.</p>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,13 @@
+# Server and engines
+fastapi>=0.110
+uvicorn>=0.29
+pydantic>=2.6
+numpy>=1.26
+
+# Validation and tests
+pytest>=8
+httpx>=0.27          # FastAPI's test client
+wntr>=1.2            # hydraulic validation (EPANET); only needed for hydrowitness.sim.wntr_validation
+
+# Optional: dashboard screenshots used during development
+# playwright

@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>How it works · HydroWitness</title>
+<meta name="description" content="HydroWitness reads what the plant says and what the pumps do, compares the two, and shows green, amber or red with the reasons. It never sends a command to the plant.">
+<meta name="theme-color" content="#F2F7F6">
+<link rel="icon" href="assets/img/favicon-64.png" type="image/png" sizes="64x64">
+<link rel="stylesheet" href="assets/site.css">
+<script>document.documentElement.className += " js";</script>
+</head>
+<body>
+<a class="skip" href="#main">Skip to the content</a>
+
+<header class="nav">
+  <div class="wrap">
+    <!-- LOGO: assets/img/logo-mark.png is the square mark shown here and assets/img/logo-full.webp is the full logo shown in the
+         footer and on the Team page. To change the logo, replace those two files (and favicon-64.png). -->
+    <a class="brand" href="index.html" aria-label="HydroWitness, home"><img src="assets/img/logo-mark.png" alt="" width="36" height="36"><span>HydroWitness</span></a>
+    <button class="menu-btn" type="button" aria-expanded="false" aria-controls="menu">Menu</button>
+    <nav aria-label="Main">
+      <ul class="menu" id="menu">
+        <li><a href="index.html">Home</a></li>
+        <li><a href="how-it-works.html" aria-current="page">How it works</a></li>
+        <li><a href="technology.html">Technology</a></li>
+        <li><a href="demo.html">Demo</a></li>
+        <li><a href="team.html">Team</a></li>
+        <li><a class="menu-cta" href="contact.html">Contact us</a></li>
+      </ul>
+    </nav>
+  </div>
+</header>
+
+<main id="main">
+<section class="page-head">
+  <div class="wrap seq">
+    <h1>How HydroWitness works.</h1>
+    <p class="lede">When SCADA can't be believed, a person needs two answers fast: how much time is left, and whether the screen can still be trusted. HydroWitness gives both, and it can only read, never write.</p>
+    <div class="cta"><a class="btn primary" href="demo.html">Try the real dashboard</a><a class="btn ghost" href="technology.html">See the technology</a></div>
+  </div>
+</section>
+
+<section class="sec tight">
+  <div class="wrap">
+    <div class="split">
+      <div class="prose rv">
+        <h2>1. A clock that still runs when SCADA doesn't.</h2>
+        <p>From the tank level and a physical model of the pipes, HydroWitness estimates how many minutes until pressure at the system's critical point (the farthest or highest customer) falls below 20 psi.</p>
+        <p>The worst case assumes peak demand and gives no credit for water coming in until a witness shows it moving. The dashboard states which demand it assumed, and asks for a tank reading to re-anchor the clock.</p>
+        <p>If real demand is far above the configured peak (a main break, fire flow), the clock can be late. That is why the screen says what it assumed.</p>
+      </div>
+      <figure class="fig rv">
+        <img src="assets/img/dash_red.webp" width="1290" height="1140" alt="The HydroWitness dashboard during the frozen-screen drill: a red banner reading Do not trust the screen, and a clock showing a worst case of 14 hours 10 minutes until the farthest customer falls below 20 psi.">
+        <figcaption>The real dashboard in a drill on the simulated plant. The clock runs from the last trusted tank level, not from the frozen screen.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="sec tight">
+  <div class="wrap">
+    <div class="head rv">
+      <h2>2. Three witnesses, one claim.</h2>
+      <p>SCADA makes a claim. HydroWitness asks three independent witnesses whether it holds up, and counts them by how much each deserves to be believed.</p>
+    </div>
+    <div class="cards">
+      <div class="card rv"><h3>An operator</h3><p>Someone reads the real gauge, the sight glass or the pump itself and types it in. This is the strongest witness, because a person is looking at the equipment.</p></div>
+      <div class="card rv"><h3>Customers</h3><p>Three or more different addresses reporting low pressure inside half an hour. They can raise amber, but never red on their own, so a flood of calls can't be used to fake an emergency.</p></div>
+      <div class="card rv"><h3>The Witness Node</h3><p>A small box on the pump motor that listens to its vibration and sound. It can say the pump is stopped while SCADA says it is running, and the screen can't forge that.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec tight">
+  <div class="wrap">
+    <div class="head rv">
+      <h2>3. Green, amber, red, in plain words.</h2>
+      <p>The color is never the only signal: each state has its own shape and its own sentence, and the reasons are listed underneath. Once it turns red it stays red until a person clears it.</p>
+    </div>
+    <div class="cards">
+      <div class="card rv" style="border-top:8px solid var(--ok)"><h3>Green: screen and witnesses agree</h3><p>Nothing to do. The clock and the readings are consistent with each other.</p></div>
+      <div class="card rv" style="border-top:8px solid var(--warn)"><h3>Amber: check the screen against the pump</h3><p>Something doesn't line up. Go and look at the equipment before you rely on the screen.</p></div>
+      <div class="card rv" style="border-top:8px solid var(--bad)"><h3>Red: do not trust the screen</h3><p>The disagreement is serious or a person confirmed it. Read the gauge and the sight glass yourself, then open the Lockout Playbook.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec tight">
+  <div class="wrap">
+    <div class="split flip">
+      <div class="prose rv">
+        <h2>4. A small box that listens to the pump.</h2>
+        <p>The Witness Node clamps onto a pump motor. An accelerometer and a microphone tell it whether the pump is running. At install it learns that pump's own signature in a short calibration, with the pump off and then on.</p>
+        <p>It reports on or off to the server in a signed message that can't be forged or replayed. It has no pressure sensor and no connection to the plant.</p>
+        <p>It is built from off-the-shelf parts: an ESP32 board, an MPU6050 accelerometer, an INMP441 microphone, a button, three lights and a buzzer.</p>
+      </div>
+      <figure class="fig rv">
+        <svg class="diagram" viewBox="0 0 440 268" role="img" aria-labelledby="nd-t nd-d">
+          <title id="nd-t">The Witness Node on a pump</title>
+          <desc id="nd-d">A drawing of a pump with a small box clamped to its motor. The box has an accelerometer and a microphone, and three indicator lights.</desc>
+          <line x1="12" y1="238" x2="428" y2="238" stroke="#0B2530" stroke-width="2"/>
+          <rect x="84" y="224" width="278" height="14" fill="#0B2530"/>
+          <rect x="12" y="168" width="60" height="26" fill="#F2F7F6" stroke="#0B2530" stroke-width="2"/>
+          <rect x="108" y="82" width="26" height="56" fill="#F2F7F6" stroke="#0B2530" stroke-width="2"/>
+          <circle cx="121" cy="181" r="46" fill="#F2F7F6" stroke="#0B2530" stroke-width="2"/>
+          <circle cx="121" cy="181" r="13" fill="none" stroke="#0B2530" stroke-width="2"/>
+          <rect x="172" y="140" width="178" height="84" rx="6" fill="#F2F7F6" stroke="#0B2530" stroke-width="2"/>
+          <g stroke="#0B2530" stroke-width="2">
+            <line x1="192" y1="146" x2="192" y2="218"/><line x1="214" y1="146" x2="214" y2="218"/>
+            <line x1="236" y1="146" x2="236" y2="218"/><line x1="258" y1="146" x2="258" y2="218"/>
+            <line x1="280" y1="146" x2="280" y2="218"/><line x1="302" y1="146" x2="302" y2="218"/><line x1="324" y1="146" x2="324" y2="218"/>
+          </g>
+          <rect x="226" y="92" width="92" height="50" rx="3" fill="#0B2530"/>
+          <circle cx="244" cy="107" r="4.5" fill="#17744A"/><circle cx="262" cy="107" r="4.5" fill="#F0B323"/><circle cx="280" cy="107" r="4.5" fill="#B3261E"/>
+          <circle cx="299" cy="107" r="3" fill="#DDEBFB"/>
+          <rect x="238" y="120" width="68" height="6" rx="2" fill="#4B6573"/>
+          <rect x="220" y="136" width="104" height="9" fill="#4B6573"/>
+          <g fill="none" stroke="#0B2530" stroke-width="1.6" stroke-linecap="round">
+            <path d="M334 100q10 -10 0 -20"/><path d="M344 106q16 -16 0 -32"/><path d="M354 112q22 -22 0 -44"/>
+          </g>
+          <path d="M200 134l-6 -8l6 -8l-6 -8" fill="none" stroke="#4B6573" stroke-width="1.6" stroke-linecap="round"/>
+          <text x="334" y="56">sound</text>
+          <text x="148" y="108" text-anchor="end">vibration</text>
+          <path d="M152 106q28 4 46 26" fill="none" stroke="#4B6573" stroke-width="1.2"/>
+          <text x="226" y="82">Witness Node</text>
+          <text x="12" y="212">inlet</text><text x="140" y="74">outlet</text><text x="188" y="258">Pump 2 motor</text>
+        </svg>
+        <figcaption>A drawing, not a photo: the node has not been built yet.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<section class="sec tight">
+  <div class="wrap">
+    <div class="head rv">
+      <h2>5. What happens next.</h2>
+      <p>A warning that doesn't say what to do is just noise.</p>
+    </div>
+    <div class="cards">
+      <div class="card rv"><h3>Lockout Playbook</h3><p>A checklist in four phases (Confirm, Contain, Prepare, Recover). Each step has an owner and a time target against the countdown clock, and ticking it off is recorded. It is a template: your own emergency plan comes first.</p></div>
+      <div class="card rv"><h3>Private alerts</h3><p>Alerts go only to a private, token-protected channel on a server the utility controls. There is no public alert path by design.</p></div>
+      <div class="card rv"><h3>Tamper-evident log</h3><p>Every reading, decision and action goes into a log where each record carries the fingerprint of the one before it. Editing, removing or reordering a record breaks the chain.</p></div>
+    </div>
+    <div class="night rv" style="margin-top:28px">
+      <div class="head" style="margin-bottom:24px">
+        <h2>Drill Mode: practise before it matters.</h2>
+        <p>Six attack drills run against the real engines on a simulated plant, so a team can watch what each one looks like and rehearse what to do. You can run them in your browser.</p>
+      </div>
+      <div class="cta"><a class="btn on-night" href="demo.html">Open the demo</a></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div>
+      <img class="logo-full" src="assets/img/logo-full.webp" width="620" height="685" alt="HydroWitness">
+      <p>When the screen lies, the pipes still tell the truth.</p>
+      <p>By Static Head Labs.</p>
+    </div>
+    <div>
+      <p><b>HydroWitness is a student prototype.</b> It is not a certified safety system and does not replace your operating procedures. It only reads data: it never sends a command to a plant. An entry in the Conrad Challenge 2026&ndash;27; the challenge has not endorsed it.</p>
+      <div class="cols2">
+        <div>
+          <h3>Pages</h3>
+          <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="how-it-works.html">How it works</a></li>
+        <li><a href="technology.html">Technology</a></li>
+        <li><a href="demo.html">Demo</a></li>
+        <li><a href="team.html">Team</a></li>
+        <li><a href="contact.html">Contact us</a></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Sources</h3>
+          <ul>
+            <li><a href="https://waterworld.com/residential-commercial/news/14306876/hacker-altered-chemicals-in-oldsmar-florida-water-supply">WaterWorld: Hacker Altered Chemicals in Oldsmar, Florida, Water Supply</a></li>
+            <li><a href="https://nextgov.com/cybersecurity/2024/05/more-70-surveyed-water-systems-failed-meet-epa-cyber-standards/396727">Nextgov: More than 70% of surveyed water systems failed to meet EPA cyber standards</a></li>
+          </ul>
+        </div>
+      </div>
+      <p>Type: Manrope and IBM Plex Mono, under the SIL Open Font License. This site sets no cookies and loads nothing from other sites.</p>
+    </div>
+  </div>
+</footer>
+
+<script src="assets/site.js"></script>
+</body>
+</html>

@@ -1,0 +1,13 @@
+# Keep the start scripts runnable after a clone on any computer.
+*.bat     text eol=crlf
+*.command text eol=lf
+*.sh      text eol=lf
+
+# The website's generated files stay byte-for-byte what the generators wrote (tests compare them).
+site/demo/** -text
+site/*.html text eol=lf
+tools/site_src/** text eol=lf
+*.gz binary
+*.woff2 binary
+*.webp binary
+*.png binary

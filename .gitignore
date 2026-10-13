@@ -1,0 +1,18 @@
+# Local setup made by the START_HERE scripts
+.venv/
+.hydrowitness_token
+
+# Python and test caches
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Real Wi-Fi password and node secret (the placeholder file is secrets.example.h)
+firmware/witness_node/secrets.h
+
+# Logs, editor and OS files
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

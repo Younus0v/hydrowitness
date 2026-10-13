@@ -1,0 +1,5 @@
+# Only what the server and dashboard need. The start scripts install this into a private .venv folder.
+fastapi>=0.110
+uvicorn>=0.29
+pydantic>=2.6
+numpy>=1.26

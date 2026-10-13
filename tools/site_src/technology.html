@@ -1,0 +1,143 @@
+title: Technology · HydroWitness
+description: Read-only by design. How the clock, the seven consistency rules and the trust engine work, how the Witness Node is secured, and what we tested and have not yet proven.
+---
+<section class="page-head">
+  <div class="wrap seq">
+    <h1>The technology, and its limits.</h1>
+    <p class="lede">Read-only by design, built from cheap parts, and tested on a simulated plant. Below is how it works inside, then what we tested and what we haven't.</p>
+  </div>
+</section>
+
+<section class="sec tight">
+  <div class="wrap">
+    <div class="head rv">
+      <h2>Data flows one way: into HydroWitness.</h2>
+      <p>SCADA values reach the server through a small read-only adapter. Nothing in HydroWitness has a path back to a pump, valve or controller.</p>
+    </div>
+    <div class="flow rv">
+      <div class="flow-col">
+        <h3>Reads</h3>
+        <div class="node">SCADA values<small>through a read-only adapter</small></div>
+        <div class="node">Operator readings and customer calls<small>typed in on the dashboard</small></div>
+        <div class="node">The Witness Node<small>signed on / off reports</small></div>
+      </div>
+      <div class="flow-col">
+        <h3>Works out</h3>
+        <div class="node">Time-to-Trouble clock<small>minutes to 20 psi at the critical point</small></div>
+        <div class="node">Seven consistency rules<small>do the stories agree?</small></div>
+        <div class="node">Trust engine<small>green, amber or red, with reasons</small></div>
+      </div>
+      <div class="flow-col">
+        <h3>Shows and records</h3>
+        <div class="node">Dashboard<small>and the Lockout Playbook</small></div>
+        <div class="node">Private alerts<small>self-hosted channel only</small></div>
+        <div class="node">Evidence log<small>hash-chained, tamper-evident</small></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="sec tight">
+  <div class="wrap cols">
+    <div class="rv">
+      <h2>Seven rules for catching a lying screen.</h2>
+      <p>Each rule asks whether the numbers on the screen could all be true at once.</p>
+      <ul class="list">
+        <li><b>Tank mass balance.</b> The change in the tank level should match the water going in and out.</li>
+        <li><b>Pump, flow and tank agreement.</b> A pump that is running should show flow, and the tank should respond.</li>
+        <li><b>Level and pressure move together.</b> The two readings should not part ways.</li>
+        <li><b>Physically possible rates.</b> A tank cannot fill or drain faster than the plant allows.</li>
+        <li><b>Command, then response.</b> When something is commanded, the equipment should answer.</li>
+        <li><b>Frozen data.</b> Real measurements wobble; a value that stops changing for too long is suspect.</li>
+        <li><b>Repeated identical sequence.</b> A replayed recording repeats exactly; real data practically never does.</li>
+      </ul>
+    </div>
+    <div class="rv">
+      <h2>Witnesses are weighed, not just counted.</h2>
+      <p>Amber starts at 1 point and red at 3. An operator who reads the pump themselves is enough for red on their own.</p>
+      <div class="tbl-wrap">
+        <table class="tbl">
+          <thead><tr><th scope="col">Witness</th><th scope="col">Points</th></tr></thead>
+          <tbody>
+            <tr><td>Operator reads the gauge, tank or pump</td><td class="num">3.0</td></tr>
+            <tr><td>Witness Node, both sensors agree</td><td class="num">2.0</td></tr>
+            <tr><td>Witness Node, one sensor</td><td class="num">1.0</td></tr>
+            <tr><td>Each customer address (three or more needed, capped)</td><td class="num">0.5, up to 1.5</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="fine">Customers can reach amber alone and never red alone. Red latches: once reached, it stays until a person clears it.</p>
+    </div>
+  </div>
+</section>
+
+<section class="sec tight">
+  <div class="wrap">
+    <div class="head rv">
+      <h2>Built so a bad actor can't make it lie too.</h2>
+    </div>
+    <div class="cards">
+      <div class="card rv"><h3>Signed node messages</h3><p>Every Witness Node report is signed with that device's own secret (HMAC-SHA256) and carries a counter, so a copied or replayed message is rejected.</p></div>
+      <div class="card rv"><h3>Tamper-evident log</h3><p>Each log record holds the SHA-256 fingerprint of the one before it. The latest fingerprint can also be sent to an outside channel once a day and at every red event, so replacing the whole log is caught too.</p></div>
+      <div class="card rv"><h3>Private by default</h3><p>The dashboard needs an access token, the server's secrets never appear in any response, and alerts go only to a private channel, never a public one.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="sec tight">
+  <div class="wrap split">
+    <div class="prose rv">
+      <h2>Cheap on purpose.</h2>
+      <p>The only hardware is the Witness Node, and it has no pressure sensor. It listens to the pump instead of measuring the pipe.</p>
+      <p>The parts are all off-the-shelf. The firmware's signal processing was tested against synthetic pumps on a normal computer; it has not yet run on a real ESP32.</p>
+    </div>
+    <div class="rv">
+      <ul class="list">
+        <li><b>ESP32</b> board: the brain and the Wi-Fi.</li>
+        <li><b>MPU6050</b> accelerometer: vibration.</li>
+        <li><b>INMP441</b> microphone: sound.</li>
+        <li><b>A button, three lights and a buzzer</b>: calibration and local status.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="sec tight" id="results">
+  <div class="wrap">
+    <div class="head rv">
+      <h2>What we tested, and what we haven't.</h2>
+      <p>Everything below ran on a simulated plant and simulated Witness Nodes. We say so up front because a simulation shows that the software behaves as designed. It doesn't show how a real pump sounds.</p>
+    </div>
+
+    <div class="tbl-wrap rv">
+      <table class="tbl">
+        <caption>Attack drills. Median of five runs each, in seconds after the attack starts. The bars run from 0 to 200 seconds: green, then amber, then red.</caption>
+        <thead><tr><th scope="col">Attack</th><th scope="col">Amber</th><th scope="col">Red</th><th scope="col" class="hide-sm"><span class="sr">Timeline</span></th></tr></thead>
+        <tbody>
+          {{RESULTS_TABLE}}
+        </tbody>
+      </table>
+    </div>
+    <p class="fine rv">With the forgery, red happens when a person reads the pump. With the hidden valve, only customer calls notice it, and customer reports can't turn the light red on their own, so a flood of calls can't be used to fake an emergency.</p>
+
+    <div class="cols" style="margin-top:36px">
+      <div class="rv">
+        <h3>Also tested</h3>
+        <ul class="list">
+          <li>265 automated tests pass, covering the clock, the rules, the trust light, message signing, the log and the dashboard.</li>
+          <li>The clock was checked against the EPANET hydraulic simulator on 310 randomized systems. Its worst case was never later than the true time in normal conditions. If real demand is far above the configured peak, it can be late (8 of 40 stress cases), so the dashboard states the demand it assumes.</li>
+          <li>On a healthy simulated plant: 0 false amber and 0 false red over 10 site-days, while pumps really started or stopped 33 times.</li>
+        </ul>
+      </div>
+      <div class="rv">
+        <h3>Not proven yet</h3>
+        <ul class="list">
+          <li>Whether a real pump shakes and sounds different enough, on and off, to be told apart. That needs the hardware test.</li>
+          <li>The Witness Node firmware has been tested on a computer, not on a real ESP32 board.</li>
+          <li>There is no connection to a real SCADA system yet, and no utility has used it.</li>
+          <li>A careful forgery only turns red with a person's reading, and a hidden valve stays amber.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>

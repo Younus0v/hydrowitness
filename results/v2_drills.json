@@ -1,0 +1,226 @@
+{
+ "drills": {
+  "frozen_screen|no operator": {
+   "scenario": "frozen_screen",
+   "name": "Frozen screen (PLC lockout)",
+   "operator_script": false,
+   "seeds": 5,
+   "reached_amber": 5,
+   "reached_red": 5,
+   "amber_median_s": 65.0,
+   "amber_max_s": 65.0,
+   "red_median_s": 95.0,
+   "red_max_s": 95.0,
+   "final_states": {
+    "red": 5
+   },
+   "false_alarms_before_attack": 0,
+   "info_cards": []
+  },
+  "frozen_screen|operator": {
+   "scenario": "frozen_screen",
+   "name": "Frozen screen (PLC lockout)",
+   "operator_script": true,
+   "seeds": 5,
+   "reached_amber": 5,
+   "reached_red": 5,
+   "amber_median_s": 65.0,
+   "amber_max_s": 65.0,
+   "red_median_s": 95.0,
+   "red_max_s": 95.0,
+   "final_states": {
+    "red": 5
+   },
+   "false_alarms_before_attack": 0,
+   "info_cards": []
+  },
+  "forced_off_spoofed|no operator": {
+   "scenario": "forced_off_spoofed",
+   "name": "Pumps forced off behind a careful forgery",
+   "operator_script": false,
+   "seeds": 5,
+   "reached_amber": 5,
+   "reached_red": 0,
+   "amber_median_s": 20.0,
+   "amber_max_s": 30.0,
+   "red_median_s": null,
+   "red_max_s": null,
+   "final_states": {
+    "amber": 5
+   },
+   "false_alarms_before_attack": 0,
+   "info_cards": []
+  },
+  "forced_off_spoofed|operator": {
+   "scenario": "forced_off_spoofed",
+   "name": "Pumps forced off behind a careful forgery",
+   "operator_script": true,
+   "seeds": 5,
+   "reached_amber": 5,
+   "reached_red": 5,
+   "amber_median_s": 20.0,
+   "amber_max_s": 30.0,
+   "red_median_s": 120.0,
+   "red_max_s": 120.0,
+   "final_states": {
+    "red": 5
+   },
+   "false_alarms_before_attack": 0,
+   "info_cards": []
+  },
+  "colorado_style|no operator": {
+   "scenario": "colorado_style",
+   "name": "Alarms off, remote access cut, pump cycles changed",
+   "operator_script": false,
+   "seeds": 5,
+   "reached_amber": 5,
+   "reached_red": 5,
+   "amber_median_s": 50.0,
+   "amber_max_s": 50.0,
+   "red_median_s": 80.0,
+   "red_max_s": 80.0,
+   "final_states": {
+    "red": 5
+   },
+   "false_alarms_before_attack": 0,
+   "info_cards": []
+  },
+  "colorado_style|operator": {
+   "scenario": "colorado_style",
+   "name": "Alarms off, remote access cut, pump cycles changed",
+   "operator_script": true,
+   "seeds": 5,
+   "reached_amber": 5,
+   "reached_red": 5,
+   "amber_median_s": 50.0,
+   "amber_max_s": 50.0,
+   "red_median_s": 80.0,
+   "red_max_s": 80.0,
+   "final_states": {
+    "red": 5
+   },
+   "false_alarms_before_attack": 0,
+   "info_cards": []
+  },
+  "replay|no operator": {
+   "scenario": "replay",
+   "name": "Replayed data",
+   "operator_script": false,
+   "seeds": 5,
+   "reached_amber": 0,
+   "reached_red": 5,
+   "amber_median_s": null,
+   "amber_max_s": null,
+   "red_median_s": 50.0,
+   "red_max_s": 50.0,
+   "final_states": {
+    "red": 5
+   },
+   "false_alarms_before_attack": 0,
+   "info_cards": []
+  },
+  "replay|operator": {
+   "scenario": "replay",
+   "name": "Replayed data",
+   "operator_script": true,
+   "seeds": 5,
+   "reached_amber": 0,
+   "reached_red": 5,
+   "amber_median_s": null,
+   "amber_max_s": null,
+   "red_median_s": 50.0,
+   "red_max_s": 50.0,
+   "final_states": {
+    "red": 5
+   },
+   "false_alarms_before_attack": 0,
+   "info_cards": []
+  },
+  "hidden_valve_closure|no operator": {
+   "scenario": "hidden_valve_closure",
+   "name": "Valve closed out of sight",
+   "operator_script": false,
+   "seeds": 5,
+   "reached_amber": 5,
+   "reached_red": 0,
+   "amber_median_s": 180.0,
+   "amber_max_s": 180.0,
+   "red_median_s": null,
+   "red_max_s": null,
+   "final_states": {
+    "amber": 5
+   },
+   "false_alarms_before_attack": 0,
+   "info_cards": []
+  },
+  "hidden_valve_closure|operator": {
+   "scenario": "hidden_valve_closure",
+   "name": "Valve closed out of sight",
+   "operator_script": true,
+   "seeds": 5,
+   "reached_amber": 5,
+   "reached_red": 0,
+   "amber_median_s": 180.0,
+   "amber_max_s": 180.0,
+   "red_median_s": null,
+   "red_max_s": null,
+   "final_states": {
+    "amber": 5
+   },
+   "false_alarms_before_attack": 0,
+   "info_cards": []
+  },
+  "power_loss_lookalike|no operator": {
+   "scenario": "power_loss_lookalike",
+   "name": "Power outage that looks like an attack",
+   "operator_script": false,
+   "seeds": 5,
+   "reached_amber": 5,
+   "reached_red": 5,
+   "amber_median_s": 20.0,
+   "amber_max_s": 30.0,
+   "red_median_s": 125.0,
+   "red_max_s": 125.0,
+   "final_states": {
+    "red": 5
+   },
+   "false_alarms_before_attack": 0,
+   "info_cards": [
+    "Node NA is on backup power",
+    "Node NB is on backup power"
+   ]
+  },
+  "power_loss_lookalike|operator": {
+   "scenario": "power_loss_lookalike",
+   "name": "Power outage that looks like an attack",
+   "operator_script": true,
+   "seeds": 5,
+   "reached_amber": 5,
+   "reached_red": 5,
+   "amber_median_s": 20.0,
+   "amber_max_s": 30.0,
+   "red_median_s": 125.0,
+   "red_max_s": 125.0,
+   "final_states": {
+    "red": 5
+   },
+   "false_alarms_before_attack": 0,
+   "info_cards": [
+    "Node NA is on backup power",
+    "Node NB is on backup power"
+   ]
+  }
+ },
+ "normal_operation": {
+  "site_days": 10.0,
+  "false_amber": 0,
+  "false_red": 0,
+  "pump_state_changes": 33,
+  "node_state_reports": 785
+ },
+ "rule_false_episodes": {
+  "site_days": 20.0,
+  "false_rule_episodes": {},
+  "total": 0
+ }
+}
