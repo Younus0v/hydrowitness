@@ -20,8 +20,8 @@ SRC = ROOT / "tools" / "site_src"
 SITE = ROOT / "site"
 V2 = ROOT / "results" / "v2_drills.json"
 
-# EDIT THIS to the team's real address, then run `python tools/build_site.py`.
-EMAIL = "hello@statichead.example"
+# The team's public contact address. To change it, edit this line, then run `python tools/build_site.py`.
+EMAIL = "hydrowitness@gmail.com"
 
 PAGES = [  # file, menu label
     ("index.html", "Home"),

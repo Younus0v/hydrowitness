@@ -64,9 +64,19 @@ def test_the_only_outside_links_are_the_two_cited_sources():
     }
 
 
+TEAM_EMAIL = "hydrowitness@gmail.com"      # the team's public address, chosen by the team
+
+
 def test_no_personal_details_on_any_page():
-    low = ALL.lower()
-    assert "gmail" not in low and "dagoo" not in low and "younus" not in low
+    low = ALL.lower().replace(TEAM_EMAIL, "")
+    assert "gmail" not in low and "dagoo" not in low       # no other address, no computer or account names
+    assert "younus0v" not in low                           # no GitHub username
+    # A first name appears only on the Team page, and only because that person asked to be listed.
+    for name, text in HTML.items():
+        if name != "team":
+            assert "younus" not in text.lower(), name
+    # and the Contact page uses the real team address, with no placeholder left
+    assert f'href="mailto:{TEAM_EMAIL}"' in HTML["contact"] and "example" not in HTML["contact"]
 
 
 def test_every_page_has_the_basics():
@@ -93,6 +103,18 @@ def test_the_page_can_be_framed_only_by_itself():
     h = {x["key"]: x["value"] for rule in cfg["headers"] if rule["source"] == "/(.*)" for x in rule["headers"]}
     assert h["X-Frame-Options"] == "SAMEORIGIN" and "frame-ancestors 'self'" in h["Content-Security-Policy"]
     assert "default-src 'self'" in h["Content-Security-Policy"] and "http" not in h["Content-Security-Policy"]
+    # Netlify reads site/_headers; it must say exactly the same thing as vercel.json
+    got, section = {}, None
+    for line in (SITE / "_headers").read_text().splitlines():
+        if not line.strip():
+            continue
+        if not line.startswith(" "):
+            section = line.strip()
+        elif section == "/*":
+            key, _, value = line.strip().partition(": ")
+            got[key] = value
+    assert got == h
+    assert "/assets/*" in (SITE / "_headers").read_text()
 
 
 def _row(op_key):

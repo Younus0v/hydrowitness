@@ -44,7 +44,7 @@ Mac/Linux one was run from a fresh copy and the server, token check and sign-in 
 The website's **Demo** page (`site/demo/`) runs the real dashboard from recordings of the real engines playing each
 drill on the simulated plant. You can pick a drill, tick the scripted operator, pause, skip and change the speed.
 Breaking things yourself and typing in your own readings need the downloadable version (Quick start above).
-To host it, see `site/README.md` (Vercel, Root Directory `site`).
+To host it, see `site/README.md` (Vercel with Root Directory `site`, or Netlify with Publish directory `site`).
 
 ## Run it
 
@@ -98,7 +98,7 @@ floor.
 
 ```
 START_HERE_*.bat/.command, run_local.py   one-click start (see Quick start)
-site/                    the website: six pages plus an in-browser demo of the real dashboard (static; see site/README.md for putting it on Vercel)
+site/                    the website: six pages plus an in-browser demo of the real dashboard (static; see site/README.md for putting it on Vercel or Netlify)
 tools/                   build_site.py writes the website's pages from tools/site_src/
 hydrowitness/            the server: engine/ (clock, rules, trust), security/, evidence_log, playbook, alerts, api, static/ dashboard
 hydrowitness/sim/        simulated plant and node, drills, V1 and V2 validation scripts
