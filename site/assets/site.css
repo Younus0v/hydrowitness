@@ -212,6 +212,7 @@ main > .sec:last-child{padding-bottom:clamp(36px,5vw,64px)}
 @media (max-width:700px){.hide-sm{display:none}.tbl th,.tbl td{padding:12px 10px}.tbl th:first-child,.tbl td:first-child{width:46%;padding-left:16px}}
 .team{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin:0;padding:0;list-style:none}
 @media (max-width:700px){.team{grid-template-columns:minmax(0,1fr)}}
+@media (min-width:701px){.team li:last-child:nth-child(odd){grid-column:1/-1}}   /* an odd last card spans the row instead of sitting alone */
 .team li{padding:26px;border:1px solid var(--line);border-radius:var(--r-lg);background:var(--white);box-shadow:var(--shadow)}
 .team b{display:block;margin-bottom:6px;color:var(--ink);font:700 1.2rem/1.25 var(--sans)}
 .team span{font-size:1rem;line-height:1.55}
