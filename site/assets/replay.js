@@ -15,7 +15,7 @@
   var els = {
     blurb: $("#blurb"), timing: $("#timing"), range: $("#t"), play: $("#play"), label: $("#tlabel"),
     clock: $("#h-clock"), level: $("#h-level"), flow: $("#h-flow"), hline: $("#h-line"),
-    vib: $("#tr-vib"), snd: $("#tr-snd"), marks: $("#marks"), atk: $("#atk"), reading: $("#reading"),
+    vib: $("#tr-vib"), snd: $("#tr-snd"), rev: $("#rev"), marks: $("#marks"), atk: $("#atk"), reading: $("#reading"),
     verdict: $("#verdict"), light: $("#light"), word: $("#vword"), head: $("#vhead"), act: $("#vact"), why: $("#why")
   };
 
@@ -58,6 +58,10 @@
   }
 
   function drawMarks(sc) {
+    var shown = 0;                                   // the picture depends only on which marks are showing,
+    sc.marks.forEach(function (m) { if (m.at <= t || m.at === 0) shown++; });
+    if (cache.marks === shown) return;               // so redraw only when one appears or goes
+    cache.marks = shown;
     var out = "";
     sc.marks.forEach(function (m) {
       if (m.at > t && m.at !== 0) return;
@@ -80,7 +84,7 @@
 
     els.range.value = t;
     text(els.label, "tl", fmtT(t));
-    els.range.setAttribute("aria-valuetext", fmtT(t) + ", trust " + WORD[st.trust].toLowerCase());
+    set(els.range, "aria", fmtT(t) + ", trust " + WORD[st.trust].toLowerCase(), function (e, v) { e.setAttribute("aria-valuetext", v); });
 
     // what SCADA says
     text(els.clock, "clock", D.pollClock(t));
@@ -93,9 +97,8 @@
     }
     els.hline.setAttribute("points", pts.join(" "));
 
-    // what the pipes say
-    els.vib.setAttribute("points", trace(D.vibration, VIB, sc, sec));
-    els.snd.setAttribute("points", trace(D.sound, SND, sc, sec));
+    // what the pipes say: each trace is drawn once per drill, and a clip window uncovers it as time passes
+    els.rev.setAttribute("width", Math.max(0, sx(sec) - 1).toFixed(1));
     drawMarks(sc);
     var running = D.pumpRunning(sc, t);
     text(els.reading, "reading", running ? "Pump 2 is shaking and loud: running." : "Pump 2 has gone still and quiet: stopped.");
@@ -147,6 +150,8 @@
     id = next; stop(); cache = {};
     root.querySelectorAll("[data-scen]").forEach(function (b) { b.setAttribute("aria-pressed", String(b.getAttribute("data-scen") === id)); });
     describe(D.SCENARIOS[id]);
+    els.vib.setAttribute("points", trace(D.vibration, VIB, D.SCENARIOS[id], D.T_MAX));
+    els.snd.setAttribute("points", trace(D.sound, SND, D.SCENARIOS[id], D.T_MAX));
     t = D.T_MIN; render();
     if (autoplay && !reduce) play();
   }
@@ -156,6 +161,10 @@
   });
   els.play.addEventListener("click", function () { if (playing) stop(); else play(); });
   els.range.addEventListener("input", function () { stop(); t = Number(els.range.value); els.play.textContent = t >= D.T_MAX ? "Replay" : "Play"; render(); });
+
+  if ("IntersectionObserver" in window) {           // scrolled out of sight: pause, so it never competes with scrolling
+    new IntersectionObserver(function (entries) { if (!entries[0].isIntersecting && playing) stop(); }, { threshold: 0 }).observe(root);
+  }
 
   buildGrid();
   choose("frozen", false);

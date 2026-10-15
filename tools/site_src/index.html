@@ -48,12 +48,13 @@ scripts: assets/replay-logic.js, assets/replay.js
             <h3 id="p2">What the pipes say<small>A Witness Node clamped on Pump 2</small></h3>
             <svg id="chart" class="chart" viewBox="0 0 400 226" role="img" aria-labelledby="chart-t">
               <title id="chart-t">Strip chart of Pump 2 vibration and sound over time</title>
+              <defs><clipPath id="reveal"><rect id="rev" x="0" y="0" width="0" height="226"/></clipPath></defs>
               <g id="grid"></g>
               <text class="lbl" x="4" y="14">Vibration</text>
               <text class="lbl" x="4" y="124">Sound</text>
               <line id="atk" x1="0" y1="20" x2="0" y2="206" stroke="#0B2530" stroke-width="1" stroke-dasharray="4 3" vector-effect="non-scaling-stroke"/>
-              <polyline id="tr-vib" class="trace" points=""/>
-              <polyline id="tr-snd" class="trace" points=""/>
+              <polyline id="tr-vib" class="trace" points="" clip-path="url(#reveal)"/>
+              <polyline id="tr-snd" class="trace" points="" clip-path="url(#reveal)"/>
               <g id="marks"></g>
             </svg>
             <p class="reading" id="reading"></p>

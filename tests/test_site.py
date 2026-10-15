@@ -93,6 +93,8 @@ def test_fonts_are_self_hosted_and_licensed():
     assert sum(n.endswith(".woff2") for n in fonts) >= 6
     assert {"LICENSE-manrope-OFL.txt", "LICENSE-plex-mono-OFL.txt"} <= fonts
     assert not (SITE / "fonts").exists() and not (SITE / "img").exists()      # the old layout is gone
+    vendor = {p.name for p in (SITE / "assets" / "vendor").iterdir()}
+    assert {"lenis.min.js", "LICENSE-lenis-MIT.txt"} <= vendor                # the one outside script is self-hosted, with its licence
 
 
 def test_the_page_can_be_framed_only_by_itself():

@@ -4,7 +4,7 @@ A static site, six pages: Home, How it works, Technology, Demo, Team and Contact
 
 ```
 index.html  how-it-works.html  technology.html  demo.html  team.html  contact.html
-assets/     site.css, site.js, replay-logic.js, replay.js, demo.js, fonts/, img/
+assets/     site.css, site.js, replay-logic.js, replay.js, demo.js, fonts/, img/, vendor/ (the scroll library)
 demo/       the real dashboard running from recordings (app.html, shim.js, index.json, rec/*.json.gz)
 vercel.json and _headers: the same security headers, for Vercel and for Netlify
 ```
@@ -53,3 +53,5 @@ If the drills or tests change, re-run `python -m hydrowitness.sim.validation_rep
 `vercel.json` (Vercel) and `_headers` (Netlify) set a strict Content-Security-Policy (everything from the site itself; no other origins), `X-Frame-Options: SAMEORIGIN` (the Demo page frames the dashboard) and a short cache time for `assets/`.
 
 Fonts: Manrope and IBM Plex Mono, under the SIL Open Font License (licenses are in `assets/fonts/`).
+
+Smooth scrolling: [Lenis](https://github.com/darkroomengineering/lenis) (MIT licence), kept in `assets/vendor/` with its licence, gives mouse wheels and trackpads a softer, inertial scroll. Phones keep their own native scrolling, and it is switched off for anyone whose system asks for reduced motion. If the file is ever missing, the pages simply scroll normally.

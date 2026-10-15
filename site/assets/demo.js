@@ -16,4 +16,21 @@
     b.addEventListener("click", function () { scen = b.getAttribute("data-scen"); go(); });
   });
   op.addEventListener("change", go);
+
+  // Size the frame to the dashboard inside it, so the dashboard never scrolls on its own: the page just scrolls,
+  // and the mouse wheel is never caught by the frame. (Same origin, so the page may measure it.)
+  var watching = null;
+  function fit() {
+    try {
+      var body = frame.contentDocument && frame.contentDocument.body;
+      if (body) frame.style.height = Math.max(640, Math.ceil(body.scrollHeight) + 1) + "px";
+    } catch (e) { /* if it cannot be measured, the stylesheet's height stays */ }
+  }
+  frame.addEventListener("load", function () {
+    fit();
+    try {
+      if (watching) watching.disconnect();
+      if ("ResizeObserver" in window) { watching = new ResizeObserver(fit); watching.observe(frame.contentDocument.body); }
+    } catch (e) { /* no observer: the height set at load stays */ }
+  });
 })();

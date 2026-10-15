@@ -7,8 +7,12 @@
 <meta name="description" content="The real HydroWitness dashboard, running in your browser. Pick an attack drill and watch the trust light, the clock and the evidence log respond.">
 <meta name="theme-color" content="#F2F7F6">
 <link rel="icon" href="assets/img/favicon-64.png" type="image/png" sizes="64x64">
+<link rel="preload" href="assets/fonts/manrope-latin-400-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/manrope-latin-600-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/manrope-latin-700-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="assets/fonts/manrope-latin-800-normal.woff2" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="assets/site.css">
-<script>document.documentElement.className += " js";</script>
+<script>document.documentElement.className += " js";addEventListener("pagereveal",function(e){if(e.viewTransition)document.documentElement.classList.add("vt")});</script>
 </head>
 <body>
 <a class="skip" href="#main">Skip to the content</a>
@@ -114,6 +118,7 @@
   </div>
 </footer>
 
+<script src="assets/vendor/lenis.min.js"></script>
 <script src="assets/site.js"></script>
 <script src="assets/demo.js"></script>
 </body>
