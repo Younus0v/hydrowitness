@@ -44,9 +44,10 @@
     });
   }
 
-  // Reveal on scroll. Blocks that arrive in the same moment (a row of cards, a set of steps) rise one after another.
+  // Reveal on scroll. Blocks that arrive in the same moment (a row of cards, a set of steps) appear one after another:
+  // rising and fading normally, fading only (site.css) for anyone whose system asks for reduced motion.
   var items = d.querySelectorAll(".rv");
-  if (!("IntersectionObserver" in window) || reduce) {
+  if (!("IntersectionObserver" in window)) {
     Array.prototype.forEach.call(items, function (n) { n.classList.add("in"); });
   } else {
     var io = new IntersectionObserver(function (entries) {

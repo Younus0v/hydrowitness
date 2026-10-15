@@ -282,14 +282,23 @@ main > .sec:last-child{padding-bottom:clamp(36px,5vw,64px)}
 @media (max-width:860px){.team-hero{grid-template-columns:minmax(0,1fr)}.logo-card{max-width:340px}}
 
 /* ---------- motion preferences ---------- */
+/* For people whose system asks for less motion: nothing slides, scales, drifts or glides. Gentle fades stay, because a fade
+   does not move anything. (Smooth scrolling is switched off in site.js.) */
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
-  .js .seq > *,.js .rv{opacity:1;transform:none;animation:none;transition:none}
+  .js .seq > *{transform:none}                       /* the hero still fades in, one line after another */
+  .js .rv,.js .night.rv{transform:none;transition:opacity .8s var(--ease) var(--d,0ms)}
+  .js .rv.done{transition:box-shadow .35s var(--ease)}
+  .card.done:hover,.stat.done:hover,.step.done:hover,.team li.done:hover{transform:none}
   .js .track{animation:none}
   .track{flex-wrap:wrap;width:auto;gap:12px 28px}
   .track [aria-hidden="true"]{display:none}
   .marquee{-webkit-mask-image:none;mask-image:none}
-  .btn,.menu a,.scen button,.play,.frame iframe{transition:none}
+  .btn{transition:background-color .2s,color .2s,box-shadow .25s var(--ease)}
+  .play{transition:background-color .2s}
+  .scen button{transition:background-color .2s,border-color .2s,color .2s}
+  .menu{transform:none;transition:opacity .2s,visibility .2s}
+  .frame iframe{transition:none}
   .btn:hover,.play:hover{transform:none}
-  @view-transition{navigation:none}
+  @keyframes vt-in{from{opacity:0}}                  /* page changes still cross-fade, without the small rise */
 }

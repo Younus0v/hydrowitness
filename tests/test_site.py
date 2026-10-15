@@ -45,6 +45,12 @@ def test_every_local_file_a_page_or_the_stylesheet_uses_exists():
     assert {"assets/site.css", "assets/site.js", "assets/replay-logic.js", "assets/replay.js", "assets/demo.js",
             "assets/img/logo-mark.png", "assets/img/logo-full.webp", "assets/img/dash_red.webp",
             "demo/app.html"} <= set(re.findall(r'(?:src|href)="([^"#:?]+)', ALL))
+    # reduced motion: gentle fades stay (nothing slides or scales), the reveals are never switched off, smooth scrolling is
+    rm = css[css.index("@media (prefers-reduced-motion:reduce)"):]
+    assert "translate" not in rm and "scale" not in rm
+    assert re.search(r"\.js \.rv[^{]*\{[^}]*transition:opacity", rm) and "@keyframes vt-in{from{opacity:0}}" in rm
+    js = (SITE / "assets" / "site.js").read_text(encoding="utf-8")
+    assert "!reduce && typeof window.Lenis" in js and "|| reduce)" not in js
 
 
 def test_pages_load_nothing_from_other_sites():

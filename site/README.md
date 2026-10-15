@@ -54,4 +54,4 @@ If the drills or tests change, re-run `python -m hydrowitness.sim.validation_rep
 
 Fonts: Manrope and IBM Plex Mono, under the SIL Open Font License (licenses are in `assets/fonts/`).
 
-Smooth scrolling: [Lenis](https://github.com/darkroomengineering/lenis) (MIT licence), kept in `assets/vendor/` with its licence, gives mouse wheels and trackpads a softer, inertial scroll. Phones keep their own native scrolling, and it is switched off for anyone whose system asks for reduced motion. If the file is ever missing, the pages simply scroll normally.
+Smooth scrolling: [Lenis](https://github.com/darkroomengineering/lenis) (MIT licence), kept in `assets/vendor/` with its licence, gives mouse wheels and trackpads a softer, inertial scroll. Phones keep their own native scrolling, and it is switched off for anyone whose system asks for reduced motion. For those visitors the pages still fade in gently, but nothing slides, scales or drifts. If the file is ever missing, the pages simply scroll normally.
