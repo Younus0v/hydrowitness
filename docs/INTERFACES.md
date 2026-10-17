@@ -62,7 +62,7 @@ All `/api` routes except `/api/health` and `/api/node` need `Authorization: Bear
 |---|---|
 | `GET /` | the dashboard (one self-contained page, no external requests) |
 | `GET /api/health` | liveness, version, whether a token is required, whether the config is the demo one |
-| `GET /api/state` | everything the dashboard shows: trust state and why, the Time-to-Trouble clock, witnesses, playbook, alerts |
+| `GET /api/state` | everything the dashboard shows: trust state and why, the four evidence checks, the Time-to-Trouble clock, witnesses, playbook, alerts |
 | `POST /api/scada` | what SCADA currently claims (JSON below). The only way plant data gets in; read-only toward the plant |
 | `POST /api/node` | Witness Node messages (authenticated by HMAC, not by the token) |
 | `POST /api/manual` | an operator's own reading: `tank_level_ft`, `gauge_psi`, `pump_running`, `flow_confirmed`, `customer_call` |
@@ -114,3 +114,11 @@ Site profile fields that matter most (units: feet, gpm, psi):
 Every claim, witness, state change, acknowledgement, playbook step and rejected message, each record carrying
 the hash of the one before. `/api/log/verify` re-computes the chain and names the first broken record. The log
 makes tampering visible; it does not prevent someone with disk access from deleting the whole file.
+
+`/api/state` also carries `evidence_checks`: four rows (record integrity, evidence freshness, source agreement,
+sensor health), each `pass`, `warn`, `fail` or `na` with one sentence of reason, and a count such as "3 of 4 checks
+pass". They restate facts the trust engine already has and do not change the light. There is deliberately no 0-100
+score. The integrity row uses a cached check (`EvidenceLog.verify_cached`): the first call reads the whole chain, later
+calls read only records added since, and the whole chain is read again every ten minutes. The `/api/log/verify`
+button always reads the whole chain, so an edit to an old record is found there at once and in the integrity row
+within ten minutes.

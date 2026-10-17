@@ -65,7 +65,7 @@
       </div>
       <div class="flow-col">
         <h3>Shows and records</h3>
-        <div class="node">Dashboard<small>and the Lockout Playbook</small></div>
+        <div class="node">Dashboard and Lockout Playbook<small>what the operator sees, and what to do next</small></div>
         <div class="node">Private alerts<small>self-hosted channel only</small></div>
         <div class="node">Evidence log<small>hash-chained, tamper-evident</small></div>
       </div>
@@ -103,6 +103,7 @@
         </table>
       </div>
       <p class="fine">Customers can reach amber alone and never red alone. Red latches: once reached, it stays until a person clears it.</p>
+      <p class="fine">Beside the light, the dashboard lists four plain checks: record integrity, evidence freshness, source agreement and sensor health. They explain the light. They are not a separate score.</p>
     </div>
   </div>
 </section>
@@ -165,7 +166,7 @@
       <div class="rv">
         <h3>Also tested</h3>
         <ul class="list">
-          <li>265 automated tests pass, covering the clock, the rules, the trust light, message signing, the log and the dashboard.</li>
+          <li>292 automated tests pass, covering the clock, the rules, the trust light, message signing, the log and the dashboard.</li>
           <li>The clock was checked against the EPANET hydraulic simulator on 310 randomized systems. Its worst case was never later than the true time in normal conditions. If real demand is far above the configured peak, it can be late (8 of 40 stress cases), so the dashboard states the demand it assumes.</li>
           <li>On a healthy simulated plant: 0 false amber and 0 false red over 10 site-days, while pumps really started or stopped 33 times.</li>
         </ul>

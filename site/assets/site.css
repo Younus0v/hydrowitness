@@ -239,15 +239,17 @@ main > .sec:last-child{padding-bottom:clamp(36px,5vw,64px)}
 .night .head{margin-bottom:24px}
 
 /* ---------- the one-way flow diagram ---------- */
-.flow{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(28px,4vw,52px);padding:clamp(18px,3vw,32px);border:1px solid var(--line);border-radius:var(--r-lg);background:var(--white);box-shadow:var(--shadow)}
+.flow{--fg:clamp(28px,4vw,52px);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:var(--fg);padding:clamp(18px,3vw,32px);border:1px solid var(--line);border-radius:var(--r-lg);background:var(--white);box-shadow:var(--shadow)}
 .flow-col{position:relative;display:flex;flex-direction:column;gap:12px}
 .flow-col h3{margin:0 0 2px;color:var(--brand);font:800 .8rem/1 var(--sans);letter-spacing:.12em;text-transform:uppercase}
 .node{padding:14px 16px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--mist);color:var(--ink);font-weight:700;line-height:1.35}
 .node small{display:block;margin-top:2px;font-weight:500;font-size:.88rem;color:var(--muted)}
-.flow-col:not(:last-child)::after{content:"";position:absolute;top:50%;right:calc(clamp(28px,4vw,52px) / -2 - 6px);width:12px;height:12px;border-top:2.5px solid var(--brand);border-right:2.5px solid var(--brand);transform:translateY(-50%) rotate(45deg)}
+.flow-col:not(:last-child)::after{content:"";position:absolute;top:50%;right:calc(var(--fg) / -2 - 6px);width:12px;height:12px;border-top:2.5px solid var(--brand);border-right:2.5px solid var(--brand);transform:translateY(-50%) rotate(45deg)}
 @media (max-width:820px){
-  .flow{grid-template-columns:minmax(0,1fr)}
-  .flow-col:not(:last-child)::after{top:auto;right:auto;bottom:-34px;left:calc(50% - 6px);transform:rotate(135deg)}
+  .flow{--fg:46px;grid-template-columns:minmax(0,1fr)}
+  /* one short line with an arrowhead, sitting in the gap between two stages, so it reads as "next" and not as a menu caret */
+  .flow-col:not(:last-child)::before{content:"";position:absolute;left:calc(50% - 1.25px);top:100%;width:2.5px;height:calc(var(--fg) - 8px);background:var(--brand)}
+  .flow-col:not(:last-child)::after{top:auto;right:auto;bottom:calc(4px - var(--fg));left:calc(50% - 6px);transform:rotate(135deg)}
 }
 
 /* ---------- demo page ---------- */

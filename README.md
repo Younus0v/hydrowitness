@@ -30,7 +30,7 @@ Mac/Linux one was run from a fresh copy and the server, token check and sign-in 
 
 | part | status |
 |---|---|
-| server: Time-to-Trouble clock, seven consistency rules, trust engine, node verification, evidence log, playbook, private alerts, API, dashboard | built; 265 automated tests pass |
+| server: Time-to-Trouble clock, seven consistency rules, trust engine, node verification, evidence log, playbook, private alerts, API, dashboard | built; 292 automated tests pass |
 | simulated plant, simulated Witness Node, six attack drills, false-alarm runs | built; results below |
 | clock against EPANET hydraulics (310 randomized systems) | done; results below |
 | Witness Node signal processing, classifier, install calibration, button/LED/buzzer logic, message signing | built in portable C++; run against the Python reference and synthetic pumps on a normal computer |
@@ -50,7 +50,7 @@ To host it, see `site/README.md` (Vercel with Root Directory `site`, or Netlify 
 
 ```
 pip install -r requirements.txt
-python3 -m pytest tests -q                                   # 265 tests, about 90 s (needs g++ for the firmware tests)
+python3 -m pytest tests -q                                   # 292 tests, about 90 s (needs g++ for the firmware tests)
 HYDROWITNESS_TOKEN=choose-a-long-random-token uvicorn hydrowitness.api:app --port 8000
 ```
 
@@ -100,11 +100,11 @@ floor.
 START_HERE_*.bat/.command, run_local.py   one-click start (see Quick start)
 site/                    the website: six pages plus an in-browser demo of the real dashboard (static; see site/README.md for putting it on Vercel or Netlify)
 tools/                   build_site.py writes the website's pages from tools/site_src/
-hydrowitness/            the server: engine/ (clock, rules, trust), security/, evidence_log, playbook, alerts, api, static/ dashboard
+hydrowitness/            the server: engine/ (clock, rules, trust, evidence checks), security/, evidence_log, playbook, alerts, api, static/ dashboard
 hydrowitness/sim/        simulated plant and node, drills, V1 and V2 validation scripts
 firmware/witness_node/   Arduino sketch plus portable C++ core; firmware/host_tests/ builds and tests it on a computer
 training/                node_reference.py (the one definition of what the node computes), train_classifier.py (the V3 analysis), synth.py
-tests/                   265 tests
+tests/                   292 tests
 results/                 saved validation output
 docs/                    INTERFACES.md, WIRING.md, HARDWARE_STAGE.md
 ```

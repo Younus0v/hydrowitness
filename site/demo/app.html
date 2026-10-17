@@ -132,6 +132,17 @@ details.rules summary { cursor: pointer; padding: .4rem 0; font-weight: 600; }
 .rule { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr); gap: .1rem .5rem; padding: .35rem 0; }
 .rule svg { width: 1.2rem; height: 1.2rem; }
 
+/* evidence checks */
+.chk { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr) auto; gap: .1rem .7rem; align-items: start; padding: .7rem 0; border-top: 1px solid var(--line); }
+.chk:last-of-type { border-bottom: 1px solid var(--line); }
+.chk svg { width: 1.3rem; height: 1.3rem; margin-top: .1rem; }
+.chk .d { color: var(--muted); max-width: 70ch; }
+.chk .w { font-weight: 700; font-size: .9rem; white-space: nowrap; padding-top: .1rem; }
+.chk.pass .w { color: var(--ok); }
+.chk.warn .w { color: var(--warn); }
+.chk.fail .w { color: var(--alarm); }
+.chk.na .w { color: var(--muted); }
+
 /* witnesses */
 .pump { padding: .9rem 0; border-top: 1px solid var(--line); }
 .pump:last-child { border-bottom: 1px solid var(--line); }
@@ -216,6 +227,7 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
   <div class="layout">
     <div class="read">
       <section id="clock" aria-labelledby="h-clock"></section>
+      <section id="checks" aria-labelledby="h-checks" hidden></section>
       <section id="why" aria-labelledby="h-why"></section>
       <section id="witness" aria-labelledby="h-wit"></section>
       <section id="timeline" aria-labelledby="h-log"></section>
@@ -302,6 +314,7 @@ const ICON = {
   yes: '<svg viewBox="0 0 24 24" aria-hidden="true" style="color:var(--ok)"><circle cx="12" cy="12" r="11" fill="currentColor"/><path d="M6.5 12.5l3.5 3.5 7.5-8" fill="none" stroke="var(--on-state)" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>',
   no: '<svg viewBox="0 0 24 24" aria-hidden="true" style="color:var(--alarm)"><path d="M8 1.5h8L22.5 8v8L16 22.5H8L1.5 16V8z" fill="currentColor"/><path d="M8.5 8.5l7 7M15.5 8.5l-7 7" stroke="var(--on-state)" stroke-width="2.6" stroke-linecap="round"/></svg>',
   open: '<svg viewBox="0 0 24 24" aria-hidden="true" style="color:var(--muted)"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2.4"/></svg>',
+  warn: '<svg viewBox="0 0 24 24" aria-hidden="true" style="color:var(--warn)"><path d="M12 1.8L23 21.5H1z" fill="currentColor" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/><path d="M12 9v6M12 17.6v.4" stroke="var(--on-state)" stroke-width="2.6" stroke-linecap="round"/></svg>',
   due: '<svg viewBox="0 0 24 24" aria-hidden="true" style="color:var(--warn)"><circle cx="12" cy="12" r="9.5" fill="none" stroke="currentColor" stroke-width="2.6"/><circle cx="12" cy="12" r="4.2" fill="currentColor"/></svg>',
   late: '<svg viewBox="0 0 24 24" aria-hidden="true" style="color:var(--alarm)"><path d="M12 1.8L23 21.5H1z" fill="currentColor"/><path d="M12 9v6M12 17.6v.4" stroke="var(--on-state)" stroke-width="2.6" stroke-linecap="round"/></svg>',
 };
@@ -472,6 +485,18 @@ function renderClock(s) {
   updateTank(c);
 }
 
+const CHECK_ICON = { pass: ICON.yes, warn: ICON.warn, fail: ICON.no, na: ICON.open };
+const CHECK_WORD = { pass: "Pass", warn: "Check", fail: "Fail", na: "Not set up" };
+function renderChecks(s) {
+  const el = $("#checks"), ec = s.evidence_checks;
+  if (!ec || !Array.isArray(ec.checks)) { el.hidden = true; return; }   // a recording or server without the checks
+  el.hidden = false;
+  const rows = ec.checks.map(c => `<div class="chk ${esc(c.status)}">${CHECK_ICON[c.status] || ICON.open}<div><b>${esc(c.name)}</b><div class="d">${esc(c.detail)}</div></div>
+      <span class="w">${esc(CHECK_WORD[c.status] || c.status)}</span></div>`).join("");
+  const latch = s.trust.latched ? `<p class="small muted" style="margin-top:.5rem">These describe the evidence now. The light can stay amber or red until someone acknowledges it.</p>` : "";
+  setHTML(el, `<h2 id="h-checks">Evidence checks</h2><p class="small muted" style="margin-bottom:.4rem"><b>${esc(ec.text)}.</b> The light at the top is the verdict. These four checks show what sits behind it.</p>${rows}${latch}`);
+}
+
 function renderWhy(s) {
   const t = s.trust, el = $("#why");
   const rules = s.rules, firing = rules.filter(r => r.fired).length;
@@ -619,7 +644,7 @@ function renderDrill(s) {
 }
 
 function render(s) {
-  renderChrome(s); renderVerdict(s); renderClock(s); renderWhy(s); renderWitness(s); renderTimeline(s); renderPlaybook(s); renderDrill(s);
+  renderChrome(s); renderVerdict(s); renderClock(s); renderChecks(s); renderWhy(s); renderWitness(s); renderTimeline(s); renderPlaybook(s); renderDrill(s);
 }
 
 /* ---------------------------------------------------------------------------------------- loop */

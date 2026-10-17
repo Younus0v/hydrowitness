@@ -14,6 +14,7 @@ import hashlib
 import json
 import os
 import threading
+import time
 from typing import Any, Callable, Optional
 
 GENESIS = "0" * 64
@@ -29,12 +30,15 @@ def record_hash(rec: dict) -> str:
 
 
 class EvidenceLog:
-    def __init__(self, path: Optional[str] = None, anchor_sink: Optional[Callable[[dict], None]] = None):
+    def __init__(self, path: Optional[str] = None, anchor_sink: Optional[Callable[[dict], None]] = None,
+                 recheck_s: float = 600.0):
         self.path = path
         self.anchor_sink = anchor_sink
         self.records: list[dict] = []
         self._lock = threading.Lock()
         self.last_anchor_ts: Optional[float] = None
+        self.recheck_s = recheck_s
+        self._vcache: Optional[dict] = None
         if path and os.path.exists(path):
             with open(path, "r", encoding="utf-8") as fh:
                 self.records = [json.loads(line) for line in fh if line.strip()]
@@ -57,7 +61,38 @@ class EvidenceLog:
             return rec
 
     def verify(self) -> tuple[bool, Optional[int], str]:
+        """Check the whole chain from the first record. O(n); this is what the dashboard button and the
+        command-line check use."""
         return verify_records(self.records)
+
+    def verify_cached(self) -> tuple[bool, Optional[int], str]:
+        """The same answer as ``verify()``, cheap enough to call every second.
+
+        The first call checks the whole chain. Later calls check only the records added since, linked
+        to the last one already checked. The whole chain is checked again every ``recheck_s`` seconds
+        (default ten minutes), so an edit to an old record in memory is still found, just not
+        instantly. A broken chain stays reported as broken until that next full check.
+        """
+        now = time.monotonic()
+        with self._lock:
+            n = len(self.records)
+            c = self._vcache
+            if c is not None and n >= c["n"] and now - c["full_t"] < self.recheck_s:
+                if not c["ok"]:
+                    return False, c["bad"], c["msg"]
+                if n == c["n"]:
+                    return True, None, c["msg"]
+                ok, bad, msg, prev = _verify_span(self.records, c["n"], c["prev"])
+                if ok:
+                    c.update(n=n, prev=prev, msg="chain intact")
+                    return True, None, "chain intact"
+                self._vcache = {"n": n, "prev": c["prev"], "ok": False, "bad": bad, "msg": msg, "full_t": c["full_t"]}
+                return False, bad, msg
+            ok, bad, msg, prev = _verify_span(self.records, 0, GENESIS)
+            if ok and n == 0:
+                msg = "log is empty"
+            self._vcache = {"n": n, "prev": prev, "ok": ok, "bad": bad, "msg": msg, "full_t": now}
+            return ok, bad, msg
 
     def anchor(self, ts: float, reason: str = "daily") -> dict:
         """Send the head hash to an outside channel (manager's email/phone, a second host...)."""
@@ -81,17 +116,25 @@ class EvidenceLog:
                 f"head hash: {self.head_hash}\nchain valid: {ok}\n{msg}\n")
 
 
-def verify_records(records: list[dict]) -> tuple[bool, Optional[int], str]:
-    prev = GENESIS
-    for i, rec in enumerate(records):
+def _verify_span(records: list[dict], start: int, prev: str) -> tuple[bool, Optional[int], str, str]:
+    """Check records[start:] given the hash of the record before them. Returns (ok, bad index, message, last hash)."""
+    for i in range(start, len(records)):
+        rec = records[i]
         if rec.get("seq") != i:
-            return False, i, f"record {i}: sequence number is {rec.get('seq')} (record removed or reordered)"
+            return False, i, f"record {i}: sequence number is {rec.get('seq')} (record removed or reordered)", prev
         if rec.get("prev_hash") != prev:
-            return False, i, f"record {i}: previous-hash link is broken"
+            return False, i, f"record {i}: previous-hash link is broken", prev
         if record_hash(rec) != rec.get("hash"):
-            return False, i, f"record {i}: contents do not match its hash (record edited)"
+            return False, i, f"record {i}: contents do not match its hash (record edited)", prev
         prev = rec["hash"]
-    return True, None, "chain intact" if records else "log is empty"
+    return True, None, "chain intact", prev
+
+
+def verify_records(records: list[dict]) -> tuple[bool, Optional[int], str]:
+    ok, bad, msg, _ = _verify_span(records, 0, GENESIS)
+    if ok and not records:
+        msg = "log is empty"
+    return ok, bad, msg
 
 
 def verify_file(path: str) -> tuple[bool, Optional[int], str]:

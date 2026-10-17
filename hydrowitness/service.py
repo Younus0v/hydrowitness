@@ -12,6 +12,7 @@ from typing import Callable, Optional
 
 from . import config as C
 from .alerts import AlertManager
+from .engine import evidence_checks
 from .engine.consistency import ConsistencyChecker
 from .engine.time_to_trouble import (ClockResult, CreditedFlow, LevelReading, compute_clock,
                                      format_minutes, l_min_ft)
@@ -258,6 +259,10 @@ class HydroWitnessCore:
         clock_d["expected_text"] = format_minutes(clock.expected_min) if clock.ok else "unknown"
         clock_d["l_min_ft"] = clock.l_min_ft if clock.l_min_ft is not None else (l_min_ft(p) if p.mode == "storage" else None)
         age = None if latest is None else now - latest.t
+        log_ok, log_bad, log_msg = self.log.verify_cached()
+        checks = evidence_checks.build(
+            now=now, scada_latest=latest, tr=tr, nodes=nodes, manual=self.manual,
+            log_ok=log_ok, log_bad=log_bad, log_msg=log_msg, log_count=len(self.log.records))
         return {
             "mode": self.name, "now": now, "now_text": fmt_t(p, now), "site": p.site_name,
             "trust": {**tr.as_dict(), "thresholds": {"amber": C.AMBER_AT, "red": C.RED_AT}},
@@ -273,5 +278,6 @@ class HydroWitnessCore:
             "timeline": [{"seq": r["seq"], "ts": r["ts"], "time": fmt_t(p, r["ts"]), "source": r["source"],
                           "type": r["type"], "content": r["content"]} for r in self.log.tail(40)][::-1],
             "log": {"count": len(self.log.records), "head_hash": self.log.head_hash},
+            "evidence_checks": checks,
             "alerts": self.alerts.history[-10:][::-1],
         }
