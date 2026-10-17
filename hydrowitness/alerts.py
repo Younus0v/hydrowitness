@@ -1,7 +1,8 @@
 """Alerts with escalation (project document section 5.9).
 
-Alerts use a PRIVATE channel: a self-hosted ntfy server with access control, or SMS. Public ntfy
-topics are protected only by the topic name, so they are NOT used for real deployments.
+Alerts use one PRIVATE channel: a self-hosted ntfy server with access control. There is no SMS, no phone
+number and no third-party messaging service. Public ntfy topics are protected only by the topic name, so
+they are NOT used for real deployments.
 If nobody acknowledges within 5 minutes, the alert escalates to a second contact.
 """
 from __future__ import annotations

@@ -92,7 +92,7 @@ write back to the plant.
 | `HYDROWITNESS_SECRETS` | path to the node secrets JSON described above. Both this and the profile must be set, or the server starts with the **demo** site and says so |
 | `HYDROWITNESS_LOG` | path of the evidence log file (append-only JSON lines, hash-chained). Unset = in memory only |
 | `HYDROWITNESS_TOKEN` | the access token |
-| `NTFY_URL`, `NTFY_TOPIC`, `NTFY_TOKEN` | alerts go only to a private, self-hosted ntfy topic that needs a token. Never a public topic |
+| `NTFY_URL`, `NTFY_TOPIC`, `NTFY_TOKEN` | alerts go only to a private, self-hosted ntfy topic that needs a token. Never a public topic. HydroWitness has no SMS or phone-number support, on purpose |
 
 Site profile fields that matter most (units: feet, gpm, psi):
 

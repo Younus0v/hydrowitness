@@ -95,7 +95,7 @@ class EvidenceLog:
             return ok, bad, msg
 
     def anchor(self, ts: float, reason: str = "daily") -> dict:
-        """Send the head hash to an outside channel (manager's email/phone, a second host...)."""
+        """Send the head hash to an outside channel (the manager's email, a second host...)."""
         a = {"ts": ts, "reason": reason, "head_hash": self.head_hash, "count": len(self.records)}
         self.last_anchor_ts = ts
         if self.anchor_sink:
