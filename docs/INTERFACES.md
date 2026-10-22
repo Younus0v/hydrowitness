@@ -115,10 +115,50 @@ Every claim, witness, state change, acknowledgement, playbook step and rejected 
 the hash of the one before. `/api/log/verify` re-computes the chain and names the first broken record. The log
 makes tampering visible; it does not prevent someone with disk access from deleting the whole file.
 
-`/api/state` also carries `evidence_checks`: four rows (record integrity, evidence freshness, source agreement,
+`/api/state` also carries `alert_delivery`, described in section 5, and `evidence_checks`: four rows (record integrity, evidence freshness, source agreement,
 sensor health), each `pass`, `warn`, `fail` or `na` with one sentence of reason, and a count such as "3 of 4 checks
 pass". They restate facts the trust engine already has and do not change the light. There is deliberately no 0-100
 score. The integrity row uses a cached check (`EvidenceLog.verify_cached`): the first call reads the whole chain, later
 calls read only records added since, and the whole chain is read again every ten minutes. The `/api/log/verify`
 button always reads the whole chain, so an edit to an old record is found there at once and in the integrity row
 within ten minutes.
+
+## 5. Without the internet: what keeps working and what does not
+
+HydroWitness is built so that the screen, the witnesses and the evidence do not depend on the internet.
+
+| part | needs the internet? |
+|---|---|
+| the dashboard page, the clock, the trust light, the playbook | no: one page, no outside requests (a test checks this) |
+| SCADA values and operator readings coming in | no: they go to the HydroWitness computer on the plant network |
+| a Witness Node reporting | no: it talks to the HydroWitness computer over the plant's own Wi-Fi or cable. If that local network is down, the node cannot report and does not save readings for later: it shows as "has gone quiet" (amber). Saving a day of readings on the node is not built |
+| the evidence log and its checks | no: saved on the HydroWitness computer |
+| the node's own lights and buzzer | no |
+| alerts to a phone | only if the private ntfy server is somewhere the HydroWitness computer can only reach through the internet. A ntfy server on the plant network keeps working |
+
+An alert that cannot be delivered is **kept, not dropped**. It stays in an outbox and is tried again after 30 s, then 60 s, 120 s
+and 240 s, and every 240 s after that, for up to a day (`ALERT_RETRY_S`, `ALERT_RETRY_MAX_S`, `ALERT_KEEP_S` in `config.py`).
+When it finally goes out its text ends with "(Delayed: first tried N min ago.)". Sending happens on its own thread, so
+a dead network cannot slow the monitor or the dashboard. ntfy refusing the message (for example a wrong token) counts as
+not delivered, the same as not being reachable.
+
+`/api/state` shows this as `alert_delivery`:
+
+```
+"alert_delivery": {"channel": "ok" | "waiting" | "none", "waiting": 0, "items": [...], "last_sent_t": 1760000000.0, "expired": 0}
+```
+
+`channel` is `none` when no private channel is configured, `waiting` while at least one alert has not gone out, and `ok`
+otherwise. Each alert in `alerts` also carries `status` (`sent`, `waiting`, `expired` or `no_channel`), `tries` and `sent_t`.
+
+The dashboard's **Emergency view** (header button) gathers what a person needs when things are going wrong: the latest
+readings and their ages, the four evidence checks, the last saved records with a log check, whether alerts are waiting
+and who to phone by hand (`emergency_contacts` in the site profile), the next playbook steps, a **Back up the evidence**
+button (the evidence log and a readable report), **Save the last readings** (works even if the server cannot be reached)
+and **Print this page**. It opens by itself when an alert is waiting or the dashboard has lost contact with the server.
+It adds no instructions of its own beyond the playbook template and a short offline checklist, and gives no regulatory advice.
+
+Not built, and why: a Witness Node that stores events while offline and sends them later needs new firmware that cannot
+be tested without the board, and a server endpoint that accepts messages older than the 60 s the server now accepts.
+Sending the log's latest fingerprint to an outside channel automatically is in the log's code (`anchor_sink`) but no
+channel is connected in the running server; use the backup button and keep the copy somewhere else.

@@ -44,3 +44,7 @@ HEADLOSS_EXPONENT = 1.852   # Hazen-Williams: friction loss grows with flow^1.85
 
 # Alerts
 ESCALATE_AFTER_S = 300.0
+# Alerts that could not be delivered (the private channel is down or unreachable) are kept and tried again
+ALERT_RETRY_S = 30.0         # first retry; each later retry waits twice as long...
+ALERT_RETRY_MAX_S = 240.0    # ...up to this long between tries
+ALERT_KEEP_S = 86400.0       # stop trying after a day: a day-old alert helps nobody

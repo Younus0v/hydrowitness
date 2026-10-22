@@ -83,7 +83,7 @@
           return reply({ ok: true, version: idx.version, auth_required: false, demo_config: true, drill_active: !!run,
                          live_armed: false, read_only: true, web_demo: true });
         }
-        if (path === "/api/log/export") return fail("Downloading the log needs the downloadable version.");
+        if (path === "/api/log/export" || path === "/api/log/report") return fail("Downloading the log needs the downloadable version.");
         return fail("Not found", 404);
       }
       if (path === "/api/drill/start") {

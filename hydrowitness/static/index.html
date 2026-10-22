@@ -141,6 +141,33 @@ details.rules summary { cursor: pointer; padding: .4rem 0; font-weight: 600; }
 .chk.fail .w { color: var(--alarm); }
 .chk.na .w { color: var(--muted); }
 
+/* emergency view: everything in it comes from this computer and the plant network, nothing from the internet */
+#emergency { border: 3px solid var(--state, var(--line-strong)); border-radius: 8px; padding: 1rem 1.1rem 1.2rem; background: var(--panel); }
+#emergency h2 { font-size: 1.3rem; margin-bottom: .4rem; }
+#emergency h3 { margin: 1.2rem 0 .4rem; font-size: 1.02rem; }
+#emergency .lead { max-width: 64ch; }
+.em-state { display: flex; flex-wrap: wrap; gap: .2rem 1.6rem; align-items: baseline; margin: .8rem 0 .2rem; }
+.em-state b { font-size: 1.3rem; }
+.em-rows > div { display: grid; grid-template-columns: 11rem minmax(0, 1fr); gap: .1rem .8rem; padding: .45rem 0; border-top: 1px solid var(--line); }
+.em-rows > div:last-child { border-bottom: 1px solid var(--line); }
+.em-rows .k { color: var(--muted); }
+@media (max-width: 560px) { .em-rows > div { grid-template-columns: 1fr; } }
+.em-note { border-left: 5px solid var(--warn); padding: .45rem .8rem; margin: .6rem 0; background: color-mix(in srgb, var(--warn) 12%, var(--panel)); }
+.em-note.bad { border-left-color: var(--alarm); background: color-mix(in srgb, var(--alarm) 12%, var(--panel)); }
+.em-list { margin: .3rem 0 0; padding-left: 1.3rem; }
+.em-list li { margin: .35rem 0; }
+.em-acts { display: flex; flex-wrap: wrap; gap: .5rem; margin-top: .7rem; }
+@media print {
+  html:root:root:root { --bg: #fff; --panel: #fff; --panel-2: #fff; --line: #999; --line-strong: #000; --text: #000; --muted: #333;
+    --ok: #0b7a58; --warn: #a86a00; --alarm: #b3261e; --on-state: #fff; }
+  body { background: #fff; color: #000; }
+  .skip, #lost, #drillbar, #livebar, header.top, #verdict, #announce, .rail, .read > section:not(#emergency), #toast, .em-noprint { display: none !important; }
+  .layout { display: block; }
+  body.lost main { filter: none; opacity: 1; }
+  main { padding: 0; }
+  #emergency { border: 2px solid #000; }
+}
+
 /* witnesses */
 .pump { padding: .9rem 0; border-top: 1px solid var(--line); }
 .pump:last-child { border-bottom: 1px solid var(--line); }
@@ -213,6 +240,7 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
   <div><h1>HydroWitness</h1> <span class="site" id="site"></span></div>
   <div class="right">
     <span class="num muted" id="clocktime"></span>
+    <button class="btn quiet small" data-act="emergency" type="button" aria-expanded="false" aria-controls="emergency">Emergency view</button>
     <button class="btn quiet small" data-act="theme" type="button" aria-label="Switch between night and day colors">Night / day</button>
   </div>
 </header>
@@ -223,6 +251,7 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
 
   <div class="layout">
     <div class="read">
+      <section id="emergency" aria-labelledby="h-em" hidden></section>
       <section id="clock" aria-labelledby="h-clock"></section>
       <section id="checks" aria-labelledby="h-checks" hidden></section>
       <section id="why" aria-labelledby="h-why"></section>
@@ -300,7 +329,7 @@ let token = ""; try { token = sessionStorage.getItem("hw_token") || ""; } catch 
 { const m = /^#token=([A-Za-z0-9_-]+)$/.exec(location.hash);
   if (m) { token = m[1]; try { sessionStorage.setItem("hw_token", token); } catch { /* ignore */ }
     try { history.replaceState(null, "", location.pathname + location.search); } catch { /* ignore */ } } }
-const S = { s: null, profile: null, ok: 0, fails: 0, prevState: null, scenarios: null, polls: 0 };
+const S = { s: null, profile: null, ok: 0, fails: 0, prevState: null, scenarios: null, polls: 0, em: null };
 
 /* ---------------------------------------------------------------- icons: every state has its own shape */
 const ICON = {
@@ -337,6 +366,11 @@ function toast(msg, bad = false) {
 }
 async function act(label, fn) {
   try { await fn(); toast(label); poll(true); } catch (e) { if (e.message !== "auth") toast(e.message, true); }
+}
+function saveFile(blob, name) {
+  const u = URL.createObjectURL(blob), l = document.createElement("a");
+  l.href = u; l.download = name; document.body.appendChild(l); l.click(); l.remove();
+  setTimeout(() => URL.revokeObjectURL(u), 4000);
 }
 const opname = () => ($("#opname").value || "").trim() || "operator";
 
@@ -484,14 +518,16 @@ function renderClock(s) {
 
 const CHECK_ICON = { pass: ICON.yes, warn: ICON.warn, fail: ICON.no, na: ICON.open };
 const CHECK_WORD = { pass: "Pass", warn: "Check", fail: "Fail", na: "Not set up" };
+function checkRows(ec) {
+  return ec.checks.map(c => `<div class="chk ${esc(c.status)}">${CHECK_ICON[c.status] || ICON.open}<div><b>${esc(c.name)}</b><div class="d">${esc(c.detail)}</div></div>
+      <span class="w">${esc(CHECK_WORD[c.status] || c.status)}</span></div>`).join("");
+}
 function renderChecks(s) {
   const el = $("#checks"), ec = s.evidence_checks;
   if (!ec || !Array.isArray(ec.checks)) { el.hidden = true; return; }   // a recording or server without the checks
   el.hidden = false;
-  const rows = ec.checks.map(c => `<div class="chk ${esc(c.status)}">${CHECK_ICON[c.status] || ICON.open}<div><b>${esc(c.name)}</b><div class="d">${esc(c.detail)}</div></div>
-      <span class="w">${esc(CHECK_WORD[c.status] || c.status)}</span></div>`).join("");
   const latch = s.trust.latched ? `<p class="small muted" style="margin-top:.5rem">These describe the evidence now. The light can stay amber or red until someone acknowledges it.</p>` : "";
-  setHTML(el, `<h2 id="h-checks">Evidence checks</h2><p class="small muted" style="margin-bottom:.4rem"><b>${esc(ec.text)}.</b> The light at the top is the verdict. These four checks show what sits behind it.</p>${rows}${latch}`);
+  setHTML(el, `<h2 id="h-checks">Evidence checks</h2><p class="small muted" style="margin-bottom:.4rem"><b>${esc(ec.text)}.</b> The light at the top is the verdict. These four checks show what sits behind it.</p>${checkRows(ec)}${latch}`);
 }
 
 function renderWhy(s) {
@@ -598,6 +634,109 @@ function renderPlaybook(s) {
     ${phases}<p class="small muted">${esc(pb.disclaimer)}</p>`);
 }
 
+/* ------------------------------------------------------------------- emergency view: no internet needed */
+const fx = (v, d) => (v == null ? "n/a" : Number(v).toFixed(d));
+function emergencyAuto(s) { return !!((s.alert_delivery && s.alert_delivery.waiting > 0) || S.fails >= 3); }
+function readingText(r, now) {
+  const age = dur(now - r.t) + " ago", who = esc(r.operator || "operator");
+  switch (r.kind) {
+    case "tank_level_ft": return `Tank ${esc(r.value)} ft (${who}, ${age})`;
+    case "gauge_psi": return `Gauge ${esc(r.value)} psi (${who}, ${age})`;
+    case "pump_running": return `${esc(r.pump_id)} ${RUNNING(r.value)} (${who}, ${age})`;
+    case "flow_confirmed": return `Water moving from ${esc(r.pump_id)} (${who}, ${age})`;
+    default: return `Customer call${r.address ? " from " + esc(r.address) : ""} (${age})`;
+  }
+}
+function renderEmergency(s) {
+  const el = $("#emergency"), btn = $('[data-act="emergency"]');
+  if (S.em === false && !emergencyAuto(s)) S.em = null;       // closed by hand, and the reason to open has gone: allow auto-open again
+  const open = S.em ?? emergencyAuto(s);
+  btn.setAttribute("aria-expanded", String(open));
+  btn.textContent = open ? "Close emergency view" : "Emergency view";
+  el.hidden = !open;
+  if (!open) return;
+  const st = s.trust.state, ad = s.alert_delivery, c = s.clock, sc = s.scada, pb = s.playbook;
+  const headline = { green: "Screen and witnesses agree", amber: "Check the screen against the pump", red: "Do not trust the screen" }[st];
+  const gone = S.fails >= 3;
+  const lostNote = gone ? `<div class="em-note bad"><b>Lost contact with the HydroWitness server.</b> This is the last update, from ${S.ok ? hhmm(S.ok) : "an unknown time"}. The readings below may be out of date. Save them now, then check that the HydroWitness computer is on and on the same network.</div>` : "";
+
+  const nodeRows = s.nodes.map(n => {
+    let t;
+    if (n.silent) t = n.last_seen_age_s == null ? "Has not reported yet." : `Silent. Last heard ${dur(n.last_seen_age_s)} ago.`;
+    else if (n.state == null) t = "Waiting for its first message.";
+    else t = `Pump is ${esc(n.state.toLowerCase())} (${pct(n.confidence)} sure). Heard ${dur(n.last_seen_age_s)} ago.${n.mains_ok === false ? " On backup power." : ""}`;
+    return `<div><span class="k">Witness Node ${esc(n.node_id)} (${esc(n.pump_id)})</span><span>${t}</span></div>`;
+  }).join("");
+  const scadaTxt = !sc ? "No SCADA data has arrived." :
+    `Updated ${dur(sc.age_s)} ago${sc.stale ? " (stale)" : ""}. Tank ${fx(sc.tank_level_ft, 2)} ft, pressure ${fx(sc.pressure_psi, 1)} psi, demand ${fx(sc.demand_gpm, 0)} gpm. ` +
+    Object.entries(sc.pump_status || {}).map(([id, v]) => `${esc(id)} ${RUNNING(v)}`).join(", ") + ".";
+  const mine = s.manual_recent.slice(0, 3).map(r => `<div><span class="k">You entered</span><span>${readingText(r, s.now)}</span></div>`).join("");
+
+  const recs = s.timeline.filter(r => r.type !== "digest").slice(0, 6)
+    .map(r => `<li><time class="num">${esc(r.time)}</time> ${esc(describe(r))}</li>`).join("");
+
+  let alerts = "";
+  if (ad) {
+    if (ad.channel === "none") alerts = `<div class="em-note bad"><b>No alert channel is set up.</b> HydroWitness cannot send alerts from here, so phone the contacts below yourself.</div>`;
+    else if (ad.channel === "waiting") alerts = `<div class="em-note bad"><b>${ad.waiting} alert${ad.waiting === 1 ? "" : "s"} could not be sent.</b> HydroWitness keeps trying and sends them as soon as the private alert channel can be reached. Do not wait: phone the contacts below.
+        <ul class="em-list">${ad.items.map(a => `<li>${esc(a.title)}: raised ${dur(a.age_s)} ago, tried ${a.tries} time${a.tries === 1 ? "" : "s"}.</li>`).join("")}</ul></div>`;
+    else alerts = `<p>The private alert channel is working.${ad.last_sent_t ? "" : " No alert has been needed yet."}</p>`;
+    if (ad.expired) alerts += `<p class="small muted">${ad.expired} older alert${ad.expired === 1 ? " was" : "s were"} never delivered and dropped after a day.</p>`;
+  }
+  const contacts = S.profile?.emergency_contacts || [];
+  const who = contacts.length ? `<ol class="em-list">${contacts.map(x => `<li>${esc(x)}</li>`).join("")}</ol>` : `<p class="muted">No contacts are listed in the site setup.</p>`;
+
+  let steps;
+  if (pb.active) {
+    const rank = { overdue: 0, due: 1, upcoming: 2 };
+    const todo = pb.phases.flatMap(ph => ph.steps.map(x => ({ ...x, phase: ph.name }))).filter(x => x.status !== "done")
+      .sort((a, b) => rank[a.status] - rank[b.status]).slice(0, 5);
+    steps = todo.length ? `<ul class="em-list">${todo.map(x => `<li><b>${esc(x.phase)}:</b> ${esc(x.text)} <span class="muted">(${esc(x.owner)}${x.status === "overdue" ? ", overdue" : x.status === "due" ? ", due now" : ""})</span>
+        <button class="btn small em-noprint" type="button" data-act="pb-step" data-id="${esc(x.id)}" data-focus="em-step-${esc(x.id)}">Mark done</button></li>`).join("")}</ul>` : `<p>Every playbook step is marked done.</p>`;
+  } else {
+    steps = `<p>The lockout playbook starts by itself at amber or red. <button class="btn small em-noprint" type="button" data-act="pb-start" data-focus="em-pbstart">Start it now</button></p>`;
+  }
+
+  setHTML(el, `<h2 id="h-em">Emergency view${s.source === "drill" ? " (simulated drill)" : ""}</h2>
+    <p class="lead muted">This page does not need the internet. It shows what HydroWitness has saved and heard on your own equipment, and what to do next. As of ${esc(s.now_text)}.</p>
+    ${lostNote}
+    <div class="em-state"><b>${esc(headline)}</b><span>Time left, worst case: <b class="num">${c.ok ? esc(c.worst_text) : "unknown"}</b></span></div>
+
+    <h3>Latest readings</h3>
+    <div class="em-rows"><div><span class="k">Screen (SCADA)</span><span>${scadaTxt}</span></div>${nodeRows}${mine}</div>
+
+    <h3>Evidence checks</h3>
+    ${s.evidence_checks ? `<p class="small muted"><b>${esc(s.evidence_checks.text)}.</b></p>${checkRows(s.evidence_checks)}` : ""}
+
+    <h3>Saved evidence</h3>
+    <p class="small muted">${s.log.count} records are saved on this computer. Latest fingerprint: <span class="hash">${esc((s.log.head_hash || "").slice(0, 16))}</span></p>
+    ${recs ? `<ul class="log">${recs}</ul>` : `<p class="empty">No events yet.</p>`}
+    <p class="small" data-em-verify-out role="status">${el.querySelector("[data-em-verify-out]")?.innerHTML || ""}</p>
+    <div class="em-acts em-noprint">
+      <button class="btn" type="button" data-act="backup" data-focus="em-backup">Back up the evidence</button>
+      <button class="btn quiet" type="button" data-act="save-state" data-focus="em-save">Save the last readings</button>
+      <button class="btn quiet" type="button" data-act="em-verify" data-focus="em-verify">Check the log is untampered</button>
+    </div>
+    <p class="small muted em-noprint" style="margin-top:.4rem">Back up saves two files: the evidence log and a readable report. Copy both to a USB drive. Save the last readings works even if the server cannot be reached.</p>
+
+    <h3>Alerts</h3>
+    ${alerts}
+    <p><b>Phone these people yourself:</b></p>${who}
+
+    <h3>What to do next</h3>
+    ${steps}
+    <p style="margin-top:.8rem"><b>While the internet is down:</b></p>
+    <ul class="em-list">
+      <li>Keep working from this page. It does not need the internet.</li>
+      <li>Phone or radio the people above. Do not wait for an alert to arrive.</li>
+      <li>Read the pressure gauge and the tank sight glass, and enter what you see. Your own readings are the strongest evidence.</li>
+      <li>Back up the evidence now and copy it to a USB drive.</li>
+      ${ad && ad.channel === "waiting" ? "<li>When the alert channel can be reached again, the waiting alerts send by themselves.</li>" : ""}
+    </ul>
+    <p class="small muted" style="margin-top:.6rem">${esc(pb.disclaimer)}</p>
+    <div class="em-acts em-noprint"><button class="btn quiet" type="button" data-act="print" data-focus="em-print">Print this page</button></div>`);
+}
+
 const SPEEDS = [1, 5, 10, 30];
 function renderDrill(s) {
   const el = $("#drill");
@@ -641,7 +780,7 @@ function renderDrill(s) {
 }
 
 function render(s) {
-  renderChrome(s); renderVerdict(s); renderClock(s); renderChecks(s); renderWhy(s); renderWitness(s); renderTimeline(s); renderPlaybook(s); renderDrill(s);
+  renderChrome(s); renderVerdict(s); renderEmergency(s); renderClock(s); renderChecks(s); renderWhy(s); renderWitness(s); renderTimeline(s); renderPlaybook(s); renderDrill(s);
 }
 
 /* ---------------------------------------------------------------------------------------- loop */
@@ -653,7 +792,7 @@ async function poll(once = false) {
     S.s = s; S.ok = Date.now(); S.fails = 0; S.polls++;
     render(s);
   } catch (e) {
-    if (e.message !== "auth") { S.fails++; if (S.s) renderChrome(S.s); else { $("#lost").hidden = false; $("#lost").textContent = "Can't reach the HydroWitness server."; } }
+    if (e.message !== "auth") { S.fails++; if (S.s) { renderChrome(S.s); renderEmergency(S.s); } else { $("#lost").hidden = false; $("#lost").textContent = "Can't reach the HydroWitness server."; } }
   }
   if (!once) { clearTimeout(poll.h); poll.h = setTimeout(poll, document.hidden ? 4000 : 1000); }
 }
@@ -683,9 +822,33 @@ document.addEventListener("click", ev => {
       $("#timeline")._h = null;
     }).catch(e => e.message !== "auth" && toast(e.message, true));
   } else if (a === "export") {
-    api("/api/log/export").then(r => r.blob()).then(bl => {
-      const u = URL.createObjectURL(bl), l = document.createElement("a"); l.href = u; l.download = "hydrowitness-evidence.jsonl"; l.click(); URL.revokeObjectURL(u);
+    api("/api/log/export").then(r => r.blob()).then(bl => saveFile(bl, "hydrowitness-evidence.jsonl"))
+      .catch(e => e.message !== "auth" && toast(e.message, true));
+  } else if (a === "emergency") {
+    if (!S.s) return;
+    S.em = !(S.em ?? emergencyAuto(S.s)); renderEmergency(S.s);
+    if (S.em) $("#emergency").scrollIntoView({ block: "start" });
+  } else if (a === "em-verify") {
+    api("/api/log/verify").then(r => r.json()).then(v => {
+      const out = $("[data-em-verify-out]"); out.innerHTML = v.ok ? `Log verified: ${v.records} records, no gaps or edits.` : `<b style="color:var(--alarm)">Log check failed:</b> ${esc(v.message)}`;
+      $("#emergency")._h = null;
     }).catch(e => e.message !== "auth" && toast(e.message, true));
+  } else if (a === "backup") {
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[T:]/g, "-");
+    Promise.all([api("/api/log/export").then(r => r.blob()), api("/api/log/report").then(r => r.blob())]).then(([lg, rp]) => {
+      saveFile(lg, `hydrowitness-evidence-${stamp}.jsonl`); saveFile(rp, `hydrowitness-report-${stamp}.txt`);
+      toast("Saved two files: the evidence log and a readable report. Copy both to a USB drive.");
+    }).catch(e => {
+      if (e.message === "auth") return;
+      toast(e instanceof TypeError ? "Could not reach the HydroWitness server. Use Save the last readings instead." : e.message, true);
+    });
+  } else if (a === "save-state") {
+    if (!S.s) return;
+    const stamp = new Date().toISOString().slice(0, 16).replace(/[T:]/g, "-");
+    saveFile(new Blob([JSON.stringify(S.s, null, 2)], { type: "application/json" }), `hydrowitness-last-readings-${stamp}.json`);
+    toast("Saved what this screen last received.");
+  } else if (a === "print") {
+    window.print();
   }
 });
 document.addEventListener("change", ev => {

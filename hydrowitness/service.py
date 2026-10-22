@@ -26,7 +26,7 @@ from .security.nodesig import NodeRegistry
 class HydroWitnessCore:
     def __init__(self, profile: SiteProfile, node_secrets: Optional[dict[str, bytes]] = None, *,
                  clock: Callable[[], float] = time.time, log: Optional[EvidenceLog] = None,
-                 alert_sinks: Optional[list] = None, name: str = "live"):
+                 alert_sinks: Optional[list] = None, name: str = "live", deferred_alerts: bool = False):
         self.profile = profile
         self.name = name
         self.clock = clock
@@ -36,7 +36,7 @@ class HydroWitnessCore:
         self.trust = TrustEngine(profile)
         self.log = log or EvidenceLog()
         self.playbook = Playbook()
-        self.alerts = AlertManager(alert_sinks or [])
+        self.alerts = AlertManager(alert_sinks or [], deferred=deferred_alerts)
         self.manual: list[ManualReading] = []
         self.snaps: deque[ScadaSnapshot] = deque(maxlen=7200)
         self.claim_since: dict[str, float] = {}
@@ -280,4 +280,5 @@ class HydroWitnessCore:
             "log": {"count": len(self.log.records), "head_hash": self.log.head_hash},
             "evidence_checks": checks,
             "alerts": self.alerts.history[-10:][::-1],
+            "alert_delivery": self.alerts.delivery(now),
         }

@@ -77,7 +77,7 @@ def test_no_personal_details_on_any_page():
     low = ALL.lower().replace(TEAM_EMAIL, "")
     assert "gmail" not in low and "dagoo" not in low       # no other address, no computer or account names
     assert "younus" not in low                             # no names at all: the Team page lists roles only
-    assert HTML["team"].count('<li class="rv"><b>') == 5 and "Five jobs" in HTML["team"]
+    assert HTML["team"].count('<li class="rv"><b>') == 4 and "Four jobs" in HTML["team"]
     # the Contact page uses the real team address, shown as text and as a link, with no placeholder left
     assert f'href="mailto:{TEAM_EMAIL}">{TEAM_EMAIL}</a>' in HTML["contact"] and "example" not in HTML["contact"]
 

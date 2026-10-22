@@ -76,11 +76,12 @@ class DrillControlIn(BaseModel):
 # ----------------------------------------------------------------------------- app state
 class AppState:
     def __init__(self, profile: SiteProfile, node_secrets: dict[str, bytes], *, log_path: Optional[str] = None,
-                 alert_sinks: Optional[list] = None, demo_config: bool = False):
+                 alert_sinks: Optional[list] = None, demo_config: bool = False, deferred_alerts: bool = False):
         self.profile = profile
         self.node_secrets = node_secrets
         self.demo_config = demo_config
         self.sinks = alert_sinks if alert_sinks is not None else []
+        self.deferred_alerts = deferred_alerts
         self.log_path = log_path
         self.live_log = EvidenceLog(log_path)
         self.live = self._new_live()
@@ -92,7 +93,8 @@ class AppState:
         self.started = time.time()
 
     def _new_live(self) -> HydroWitnessCore:
-        core = HydroWitnessCore(self.profile, self.node_secrets, log=self.live_log, alert_sinks=self.sinks, name="live")
+        core = HydroWitnessCore(self.profile, self.node_secrets, log=self.live_log, alert_sinks=self.sinks, name="live",
+                                deferred_alerts=self.deferred_alerts)
         core.alerts_enabled = False        # armed by the first real data, so a fresh start doesn't page anyone
         return core
 
@@ -170,11 +172,13 @@ def create_app(profile: Optional[SiteProfile] = None, node_secrets: Optional[dic
     sinks = list(alert_sinks) if alert_sinks is not None else []
     if alert_sinks is None and os.environ.get("NTFY_URL") and os.environ.get("NTFY_TOPIC") and os.environ.get("NTFY_TOKEN"):
         sinks.append(NtfySink(os.environ["NTFY_URL"], os.environ["NTFY_TOPIC"], os.environ["NTFY_TOKEN"]))
-    st = AppState(profile, node_secrets, log_path=log_path, alert_sinks=sinks, demo_config=demo_config)
+    st = AppState(profile, node_secrets, log_path=log_path, alert_sinks=sinks, demo_config=demo_config,
+                  deferred_alerts=run_background)
 
     @asynccontextmanager
     async def lifespan(app: FastAPI):
         task = None
+        stop = threading.Event()
         if run_background:
             async def loop():
                 last = time.monotonic()
@@ -187,7 +191,17 @@ def create_app(profile: Optional[SiteProfile] = None, node_secrets: Optional[dic
                     except Exception:           # the monitor must keep running whatever happens
                         log.exception("background tick failed")
             task = asyncio.create_task(loop())
+            # Sending alerts is network work. It runs on its own thread so that a dead network (an internet
+            # outage, a down ntfy server) can never stall the monitor or the dashboard.
+            def deliver():
+                while not stop.wait(0.5):
+                    try:
+                        st.live.alerts.deliver_pending(time.time())
+                    except Exception:
+                        log.exception("alert delivery failed")
+            threading.Thread(target=deliver, name="alert-delivery", daemon=True).start()
         yield
+        stop.set()
         if task:
             task.cancel()
 

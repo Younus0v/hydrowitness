@@ -81,6 +81,7 @@ train_classifier printout, and the on-device calibration verdicts. Do not summar
 | HTTPS (`USE_TLS 1`) | built but never exercised; a plain-HTTP node on a private network is the tested path | stage 7, optional |
 | the mains-sense circuit | needs two resistors and two diodes; `HAVE_MAINS_SENSE` is 0 until built | stage 9 |
 | the node buffering a day of events while offline | **not built**: a node that is offline simply stops being a witness (amber, "has gone quiet") and events older than 45 s are dropped, because the server rejects messages more than 60 s old | would need a backfill endpoint |
+| the alert queue and the Emergency view in a real outage | tested against stand-in alert servers that hang, refuse and come back, and in a browser against a simulated plant; never in a real outage or against a real ntfy server | pilot, or stage 9 with a real ntfy server |
 | reading a real SCADA system | the server takes JSON on `POST /api/scada`; no plant adapter is included | site work |
 | direct-pumping sites (no storage tank) | needs WNTR response curves per site; that tool is not part of this build | not planned |
 | the numbers on a real system | every drill and false-alarm figure is from a simulated plant and simulated nodes | a pilot |
