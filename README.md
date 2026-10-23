@@ -73,6 +73,7 @@ python3 -m hydrowitness.sim.validation_report      # V2, about 70 s, writes resu
 | nothing random (checks the model itself) | 30 | 0 | 0% (p90 1%) |
 | normal days, pumps off | 100 | 0 | about 0% bias, 8% typical |
 | a witness shows a pump moving water | 70 | 0 | (stable cases) |
+| that pump delivers 5-18% less than the clock assumes (worn impeller) | 30 | 0 | (stable cases) |
 | headloss margin set 30-70% too low | 40 | 0 | |
 | real demand 1.3-2.0x the configured peak | 40 | **8 (20%)** | clock too optimistic |
 
