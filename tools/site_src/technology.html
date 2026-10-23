@@ -125,7 +125,7 @@ description: Read-only by design. How the clock, the seven consistency rules and
       <div class="rv">
         <h3>Also tested</h3>
         <ul class="list">
-          <li>319 automated tests pass, covering the clock, the rules, the trust light, message signing, the log and the dashboard.</li>
+          <li>320 automated tests pass, covering the clock, the rules, the trust light, message signing, the log and the dashboard.</li>
           <li>The clock was checked against the EPANET hydraulic simulator on 310 randomized systems. Its worst case was never later than the true time in normal conditions. If real demand is far above the configured peak, it can be late (8 of 40 stress cases), so the dashboard states the demand it assumes.</li>
           <li>With the alert channel switched off, hung and then brought back, the server stayed responsive, kept the alert waiting, and sent it, marked as late, once the channel returned. The Emergency view opens by itself while an alert is waiting or the server can't be reached.</li>
           <li>On a healthy simulated plant: 0 false amber and 0 false red over 10 site-days, while pumps really started or stopped 33 times.</li>

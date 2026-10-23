@@ -176,6 +176,14 @@ def test_the_test_count_on_the_page_is_the_readme_count():
     assert f"{page} automated tests pass" in readme
 
 
+def test_the_cost_section_says_these_are_plans_not_results():
+    hw = HTML["how-it-works"]
+    assert "We have not sold one" in hw and "every number here is a projection or a proposal" in hw
+    for money in ("about $19", "about $40", "$199", "$360 a year", "$2,500 a year"):
+        assert money in hw
+    assert "Planned, not built" in hw and "Proposed. Not tested with any buyer" in hw
+
+
 def test_trust_points_on_the_page_are_the_engines_constants():
     from hydrowitness import config as C
     t = HTML["technology"]
