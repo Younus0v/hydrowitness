@@ -12,9 +12,12 @@ server. It never controls anything. Raw audio never leaves the device; only a ve
   `tests/test_firmware_node.py` (the whole install flow, LEDs, buzzer, button, dead-sensor handling, against
   synthetic pump signals).
 * `witness_node.ino` is the hardware glue. It type-checks, with all warnings on, against stand-ins for the
-  ESP32 libraries for every `config.h` combination (`tests/test_firmware_node.py`). **It has never been compiled
-  for or run on a real ESP32.** The stand-ins were written from the published API, so expect that the first real
-  build may need a few small fixes. Work through `docs/HARDWARE_STAGE.md`, stage 7.
+  ESP32 libraries for every `config.h` combination (`tests/test_firmware_node.py`). It has also been **compiled
+  for the ESP32 with the real toolchain** (esp32 core 3.3.12, board "ESP32 Dev Module", all warnings on, no
+  warnings from our files; also with mains sense, the right mic slot, TLS and 50 Hz switched on). That first
+  real compile found one bug, a constant named `EPS` that clashes with a macro in the ESP32's own headers; it
+  is now `DSP_EPS`. **It has never been run on a real ESP32**, so I2S, I2C, Wi-Fi and flash behaviour on the
+  board are still unproven. Work through `docs/HARDWARE_STAGE.md`, stage 7.
 
 ## Build
 

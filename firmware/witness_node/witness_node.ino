@@ -4,7 +4,7 @@
 // This file is only the hardware glue (I2S microphone, I2C accelerometer, Wi-Fi, flash, LEDs). All of the
 // signal processing, classification, calibration and operator-button logic is in hw_dsp.h, hw_model.h and
 // hw_node.h, which are compiled and tested on a normal computer (tests/test_firmware_core.py and
-// tests/test_firmware_node.py). THIS FILE HAS NOT BEEN COMPILED FOR OR RUN ON AN ESP32. See README.md.
+// tests/test_firmware_node.py). THIS FILE COMPILES FOR THE ESP32 BUT HAS NOT BEEN RUN ON ONE. See README.md.
 //
 // Needs the Arduino-ESP32 core 3.x. Read-only by design: the node only listens and reports. It has no
 // output to any pump, valve or control system, and raw audio never leaves the device.

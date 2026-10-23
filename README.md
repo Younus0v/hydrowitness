@@ -34,7 +34,7 @@ Mac/Linux one was run from a fresh copy and the server, token check and sign-in 
 | simulated plant, simulated Witness Node, six attack drills, false-alarm runs | built; results below |
 | clock against EPANET hydraulics (310 randomized systems) | done; results below |
 | Witness Node signal processing, classifier, install calibration, button/LED/buzzer logic, message signing | built in portable C++; run against the Python reference and synthetic pumps on a normal computer |
-| Witness Node Arduino sketch (I2S, I2C, Wi-Fi, flash) | written, type-checked against stand-ins, **never run on a real ESP32** |
+| Witness Node Arduino sketch (I2S, I2C, Wi-Fi, flash) | written, compiles for the ESP32 (core 3.3.12), **never run on a real ESP32** |
 | real pump: does the node tell on from off? | **not measured** (needs the parts: `docs/HARDWARE_STAGE.md`) |
 | in-browser demo (site/demo/): the real dashboard replaying recorded drills, no server | built; regenerate with `python -m hydrowitness.sim.web_recordings`, tested against the saved drill results |
 | real SCADA connection, real systems | not done |

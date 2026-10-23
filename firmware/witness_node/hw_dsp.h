@@ -14,7 +14,7 @@ constexpr int NFEAT = 15;
 constexpr int ACC_FS = 1000, ACC_N = 512, ACC_NB = 8;     // MPU6050 accel low-pass is about 260 Hz
 constexpr int MIC_FS = 16000, MIC_N = 8192, MIC_NB = 10;
 constexpr int MAX_NB = 10;
-constexpr double EPS = 1e-18;
+constexpr double DSP_EPS = 1e-18;   // not "EPS": the ESP32 toolchain's own headers define a macro with that name
 
 struct BlockStats {
   float var[3];          // per-axis variance (acc) or total variance in var[0] (mic)
@@ -165,7 +165,7 @@ inline void mic_block(const float* x, int mains_hz, const BlockStats* prev, Bloc
   finish(*out, MIC_NB, sq, mag_max, n, prev);
 }
 
-inline float db(double v) { return (float)(10.0 * log10(v + EPS)); }
+inline float db(double v) { return (float)(10.0 * log10(v + DSP_EPS)); }
 
 // Features of the window made of two consecutive blocks (see FEATURES in training/node_reference.py).
 inline void window_features(bool acc, const BlockStats& a, const BlockStats& b, float* f) {
