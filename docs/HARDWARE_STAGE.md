@@ -75,7 +75,7 @@ train_classifier printout, and the on-device calibration verdicts. Do not summar
 
 | not tested | why it matters | where it gets tested |
 |---|---|---|
-| the ESP32 sketch running (I2S, I2C, Wi-Fi, flash storage, HTTP) | it compiles for the ESP32 (esp32 core 3.3.12, the first real compile found and fixed one name clash) and passes the computer tests, but it has never run on a real board; the first run may still need small fixes | stage 7 |
+| the ESP32 sketch running (I2S, I2C, Wi-Fi, flash storage, HTTP) | it compiles for the ESP32 (esp32 core 3.3.12, real compiles found and fixed a name clash and an attribute the Arduino IDE rejects) and passes the computer tests, but it has never run on a real board; the first run may still need small fixes | stage 7 |
 | whether real pump vibration and sound separate on from off | all node tests use synthetic signals | stage 8, V3 |
 | the accelerometer's actual sample rate | the hum bands assume 1000 Hz | stage 7, `status` |
 | HTTPS (`USE_TLS 1`) | built but never exercised; a plain-HTTP node on a private network is the tested path | stage 7, optional |

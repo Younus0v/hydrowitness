@@ -8,6 +8,7 @@ It does NOT prove anything about the ESP32 glue (I2S, I2C, WiFi, flash) or about
 are not evidence of real separability; that is validation V3 with a real node.
 """
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -250,8 +251,14 @@ def test_install_led_patterns_say_what_to_do(standard):
 def test_sketch_type_checks_against_arduino_stand_ins(tmp_path, tls, mains):
     """Catches typos, wrong types, printf mistakes and #include-order bugs in witness_node.ino for every config
     combination. The stand-ins (firmware/host_tests/stubs) are written from the published ESP32 API, so this
-    cannot catch a mismatch with the real core: only a real build can. See firmware/README.md."""
+    cannot catch a mismatch with the real core: only a real build can. See firmware/README.md.
+
+    One trap a real build found: the Arduino IDE writes its own declaration of every function in a .ino without
+    attributes, so a function marked [[noreturn]] in the sketch fails to compile there ("declared [[noreturn]] but its
+    first declaration was not"). Nothing here would notice, so check for it directly."""
     src = os.path.join(ROOT, "firmware", "witness_node")
+    ino_text = open(os.path.join(src, "witness_node.ino")).read()
+    assert not re.search(r"^\s*\[\[noreturn\]\]", ino_text, re.M), "the Arduino IDE rejects [[noreturn]] on a sketch function"
     for name in os.listdir(src):
         if name.endswith((".h", ".ino")) and name != "secrets.example.h":
             shutil.copy(os.path.join(src, name), tmp_path / name)

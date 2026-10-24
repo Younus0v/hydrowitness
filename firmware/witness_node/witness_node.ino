@@ -73,7 +73,10 @@ static volatile char dump_label = '-';
 static void lock() { xSemaphoreTake(mtx, portMAX_DELAY); }
 static void unlock() { xSemaphoreGive(mtx); }
 
-[[noreturn]] static void fatal(const char* why) {    // a node that cannot be trusted says so instead of guessing
+// A node that cannot be trusted says so instead of guessing. It never returns (the loop below runs forever).
+// Do not mark it [[noreturn]]: the Arduino IDE writes its own declaration of every function in this file
+// without that marker, and the compiler then refuses it ("declared [[noreturn]] but its first declaration was not").
+static void fatal(const char* why) {
   pinMode(PIN_LED_GREEN, OUTPUT); pinMode(PIN_LED_AMBER, OUTPUT); pinMode(PIN_LED_RED, OUTPUT);
   for (;;) {
     Serial.printf("FATAL: %s\n", why);

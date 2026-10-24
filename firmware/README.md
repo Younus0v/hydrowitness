@@ -14,9 +14,12 @@ server. It never controls anything. Raw audio never leaves the device; only a ve
 * `witness_node.ino` is the hardware glue. It type-checks, with all warnings on, against stand-ins for the
   ESP32 libraries for every `config.h` combination (`tests/test_firmware_node.py`). It has also been **compiled
   for the ESP32 with the real toolchain** (esp32 core 3.3.12, board "ESP32 Dev Module", all warnings on, no
-  warnings from our files; also with mains sense, the right mic slot, TLS and 50 Hz switched on). That first
-  real compile found one bug, a constant named `EPS` that clashes with a macro in the ESP32's own headers; it
-  is now `DSP_EPS`. **It has never been run on a real ESP32**, so I2S, I2C, Wi-Fi and flash behaviour on the
+  warnings from our files; also with mains sense, the right mic slot, TLS and 50 Hz switched on). Real
+  compiles have found two bugs so far. A constant named `EPS` clashed with a macro in the ESP32's own headers (now
+  `DSP_EPS`). And `fatal()` was marked `[[noreturn]]`, which the Arduino IDE rejects, because the IDE writes its own
+  declaration of every sketch function without attributes; a teammate's Arduino IDE found that one, because
+  the first compile had skipped the IDE's prototype step. Both are fixed, a test guards the second, and the compile
+  has been repeated with that step switched on. **It has never been run on a real ESP32**, so I2S, I2C, Wi-Fi and flash behaviour on the
   board are still unproven. Work through `docs/HARDWARE_STAGE.md`, stage 7.
 
 ## Build
