@@ -56,47 +56,16 @@ description: HydroWitness reads what the plant says and what the pumps do, compa
 
 <section class="sec tight">
   <div class="wrap">
-    <div class="split flip">
-      <div class="prose rv">
-        <h2>4. A small box that listens to the pump.</h2>
-        <p>The Witness Node clamps onto a pump motor. An accelerometer and a microphone tell it whether the pump is running. At install it learns that pump's own signature in a short calibration, with the pump off and then on.</p>
-        <p>It reports on or off to the server in a signed message that can't be forged or replayed. It has no pressure sensor and no connection to the plant.</p>
-        <p>It is built from off-the-shelf parts: an ESP32 board, an MPU6050 accelerometer, an INMP441 microphone, a button, three lights and a buzzer.</p>
-      </div>
-      <figure class="fig rv">
-        <svg class="diagram" viewBox="0 0 440 268" role="img" aria-labelledby="nd-t nd-d">
-          <title id="nd-t">The Witness Node on a pump</title>
-          <desc id="nd-d">A drawing of a pump with a small box clamped to its motor. The box has an accelerometer and a microphone, and three indicator lights.</desc>
-          <line x1="12" y1="238" x2="428" y2="238" stroke="#0B2530" stroke-width="2"/>
-          <rect x="84" y="224" width="278" height="14" fill="#0B2530"/>
-          <rect x="12" y="168" width="60" height="26" fill="#F2F7F6" stroke="#0B2530" stroke-width="2"/>
-          <rect x="108" y="82" width="26" height="56" fill="#F2F7F6" stroke="#0B2530" stroke-width="2"/>
-          <circle cx="121" cy="181" r="46" fill="#F2F7F6" stroke="#0B2530" stroke-width="2"/>
-          <circle cx="121" cy="181" r="13" fill="none" stroke="#0B2530" stroke-width="2"/>
-          <rect x="172" y="140" width="178" height="84" rx="6" fill="#F2F7F6" stroke="#0B2530" stroke-width="2"/>
-          <g stroke="#0B2530" stroke-width="2">
-            <line x1="192" y1="146" x2="192" y2="218"/><line x1="214" y1="146" x2="214" y2="218"/>
-            <line x1="236" y1="146" x2="236" y2="218"/><line x1="258" y1="146" x2="258" y2="218"/>
-            <line x1="280" y1="146" x2="280" y2="218"/><line x1="302" y1="146" x2="302" y2="218"/><line x1="324" y1="146" x2="324" y2="218"/>
-          </g>
-          <rect x="226" y="92" width="92" height="50" rx="3" fill="#0B2530"/>
-          <circle cx="244" cy="107" r="4.5" fill="#17744A"/><circle cx="262" cy="107" r="4.5" fill="#F0B323"/><circle cx="280" cy="107" r="4.5" fill="#B3261E"/>
-          <circle cx="299" cy="107" r="3" fill="#DDEBFB"/>
-          <rect x="238" y="120" width="68" height="6" rx="2" fill="#4B6573"/>
-          <rect x="220" y="136" width="104" height="9" fill="#4B6573"/>
-          <g fill="none" stroke="#0B2530" stroke-width="1.6" stroke-linecap="round">
-            <path d="M334 100q10 -10 0 -20"/><path d="M344 106q16 -16 0 -32"/><path d="M354 112q22 -22 0 -44"/>
-          </g>
-          <path d="M200 134l-6 -8l6 -8l-6 -8" fill="none" stroke="#4B6573" stroke-width="1.6" stroke-linecap="round"/>
-          <text x="334" y="56">sound</text>
-          <text x="148" y="108" text-anchor="end">vibration</text>
-          <path d="M152 106q28 4 46 26" fill="none" stroke="#4B6573" stroke-width="1.2"/>
-          <text x="226" y="82">Witness Node</text>
-          <text x="12" y="212">inlet</text><text x="140" y="74">outlet</text><text x="188" y="258">Pump 2 motor</text>
-        </svg>
-        <figcaption>A drawing, not a photo: the node has not been built yet.</figcaption>
-      </figure>
+    <div class="prose rv">
+      <h2>4. A small box that listens to the pump.</h2>
+      <p>The Witness Node clamps onto a pump motor. An accelerometer and a microphone tell it whether the pump is running. At install it learns that pump's own signature in a short calibration, with the pump off and then on.</p>
+      <p>It reports on or off to the server in a signed message that can't be forged or replayed. It has no pressure sensor and no connection to the plant.</p>
+      <p>It is built from off-the-shelf parts: an ESP32 board, an MPU6050 accelerometer, an INMP441 microphone, a button, three lights and a buzzer.</p>
     </div>
+    <figure class="fig rv" style="margin-top:32px">
+      <img src="assets/img/witness_node.webp" width="1232" height="550" loading="lazy" decoding="async" alt="Two illustrations. Left: a pump motor with a small box clamped to its bare metal body by a hose clamp, with a microphone port on the box, three lights and a button on its lid, and a 5 volt USB adapter in a wall socket. Right: the inside of the box with the ESP32 board, the GY-521 accelerometer and the INMP441 microphone wired to it, three LEDs with resistors, a button, a buzzer and a transistor.">
+      <figcaption>An illustration, not a photo of a built unit. A first prototype is wired on a breadboard, and it has not been tested on a real pump yet. The exact pins are in docs/WIRING.md. <a href="assets/img/witness_node.webp">Open the picture full size.</a><br><br>The numbers in the picture: 1 ESP32 DevKit V1 (30-pin) · 2 GY-521 (MPU6050) accelerometer · 3 INMP441 microphone · 4 push button · 5 green, amber and red LEDs with three 330 ohm resistors · 6 active buzzer with a 2N2222 transistor and a 1 kilohm resistor · 7 plastic project box and metal hose clamp · 8 USB wall adapter and cable · 9 jumper wires and a breadboard.</figcaption>
+    </figure>
   </div>
 </section>
 
