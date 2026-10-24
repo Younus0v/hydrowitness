@@ -123,3 +123,7 @@ docs/                    INTERFACES.md, WIRING.md, HARDWARE_STAGE.md
 
 This is a student prototype for a competition, not a certified safety system. Do not rely on it as the only
 protection for a real water system.
+
+## License
+
+HydroWitness is open source under the Apache License 2.0 (see `LICENSE` and `NOTICE`), Copyright 2026 Static Head Labs. It covers the software, the firmware and the wiring documents in this repository. The license comes with no warranty, and this is a student prototype, not a certified safety system.
