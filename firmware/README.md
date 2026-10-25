@@ -19,8 +19,8 @@ server. It never controls anything. Raw audio never leaves the device; only a ve
   `DSP_EPS`). And `fatal()` was marked `[[noreturn]]`, which the Arduino IDE rejects, because the IDE writes its own
   declaration of every sketch function without attributes; a teammate's Arduino IDE found that one, because
   the first compile had skipped the IDE's prototype step. Both are fixed, a test guards the second, and the compile
-  has been repeated with that step switched on. **It has never been run on a real ESP32**, so I2S, I2C, Wi-Fi and flash behaviour on the
-  board are still unproven. Work through `docs/HARDWARE_STAGE.md`, stage 7.
+  has been repeated with that step switched on. **It has booted on a real ESP32-S board** (the boot log is in `measurements/`), but its
+  sensor readings, Wi-Fi and flash behaviour on the board are still unproven, and it has not been run against a pump. Work through `docs/HARDWARE_STAGE.md`, stage 7.
 
 ## Build
 

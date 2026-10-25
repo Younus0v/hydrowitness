@@ -213,7 +213,14 @@ class ConsistencyChecker:
         # all pumps stopped, zero inflow, yet the tank is rising
         stopped = [p for p in self.profile.pumps if s.pump_status.get(p.id) is False]
         if self.profile.pumps and len(stopped) == len(self.profile.pumps):
-            win = self._window(now, 300)
+            # Only the time since every pump has been shown stopped counts. The 5 minutes before the last pump stopped
+            # still hold the rise from when it was running, and on a small tank that looked like "stopped but rising".
+            win: list[ScadaSnapshot] = []
+            for x in reversed(self._window(now, 300)):
+                if any(x.pump_status.get(p.id) is not False for p in self.profile.pumps):
+                    break
+                win.append(x)
+            win.reverse()
             lv = [x for x in win if x.tank_level_ft is not None]
             if len(lv) >= 12 and lv[-1].t - lv[0].t >= 240:
                 half = len(lv) // 4 or 1

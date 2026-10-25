@@ -238,3 +238,80 @@ def test_green_amber_red_colours_only_mean_trust():
         line = css[css.rfind("\n", 0, pos) + 1: css.find("\n", pos)]
         allowed = ("verdict", "--state", "--tint", "bar", "hist", ".pane", "border-top:8px")
         assert any(a in line for a in allowed) or line.startswith("  --"), line.strip()[:90]
+
+
+# ---- the comparison with a plain alarm panel and the hardware status come from the saved results ------------------------------
+EVAL = json.loads((ROOT / "results" / "evaluation.json").read_text())
+MEAS = json.loads((ROOT / "results" / "measurements.json").read_text())
+
+
+def _text(page: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", page))
+
+
+def test_the_alarm_panel_table_is_the_saved_evaluation():
+    page = _text(HTML["technology"])
+    b = _builder()
+    for label, key in b.EVAL_ROWS:
+        d = EVAL["summary"]["attacks"][key]["detection"]
+        for who in ("hydrowitness_warned", "alarm", "alarm_flatline"):
+            x = d[who]
+            want = f"none of {x['runs']}" if not x["detected"] else f"{x['detected']} of {x['runs']}, median {x['median_s']:g} s"
+            assert want in page, (label, who, want)
+    t = EVAL["summary"]["totals"]
+    n_runs = t["attack_runs_without_operator"]
+    assert f"Across the {n_runs} runs where nobody walks to the pump, HydroWitness raised a warning in " \
+           f"{n_runs - t['hydrowitness_missed_without_operator']}." in page
+    n = EVAL["summary"]["normal_operation"]
+    assert f"{n['site_days']:g} site-days" in page and f"{n['pump_state_changes']} times" in page
+    assert "Nobody walks to the pump. 20 runs per row" in page
+
+
+def test_the_numbers_follow_the_file_not_the_page_source(tmp_path, monkeypatch):
+    b = _builder()
+    changed = json.loads(json.dumps(EVAL))
+    changed["summary"]["attacks"]["frozen_screen|no operator"]["detection"]["alarm"].update(detected=7, missed=13, median_s=125.0, max_s=125.0)
+    changed["summary"]["normal_operation"]["hydrowitness_false_amber"] = 4
+    p = tmp_path / "evaluation.json"
+    p.write_text(json.dumps(changed))
+    monkeypatch.setattr(b, "EVALUATION", p)
+    page = _text(b.build()["technology.html"])
+    assert "7 of 20, median" in page and "HydroWitness raised 4 false warnings" in page
+    assert "HydroWitness raised 0 false warnings" in _text(HTML["technology"])
+
+
+def test_the_countdown_sentence_would_not_hide_a_late_result(tmp_path, monkeypatch):
+    b = _builder()
+    changed = json.loads(json.dumps(EVAL))
+    changed["summary"]["totals"]["countdown"].update(late=3, close=changed["summary"]["totals"]["countdown"]["close"] - 3,
+                                                     worst_case_bound_held=changed["summary"]["totals"]["countdown"]["scored"] - 2)
+    p = tmp_path / "evaluation.json"
+    p.write_text(json.dumps(changed))
+    monkeypatch.setattr(b, "EVALUATION", p)
+    page = _text(b.build()["technology.html"])
+    assert "later than the true time in 3" in page and "later than the simulated plant's true time in 2 of them" in page
+    assert "The expected-case figure was never later" not in page
+
+
+def test_the_page_says_the_alarm_panel_comparison_is_a_simulation_with_assumed_nodes():
+    page = _text(HTML["technology"])
+    assert "All of this is a simulation" in page and "our assumptions, not measurements" in page
+    assert "results/evaluation.md" in page and "only because a Witness Node went silent" in page
+
+
+def test_hardware_claims_follow_the_measurement_report(tmp_path, monkeypatch):
+    c = MEAS["counted"]
+    assert c["development"] == 0 and c["evaluation"] == 0 and c["bench"] >= 1          # what we have today
+    page = _text(HTML["technology"])
+    assert "has booted on a real ESP32 development board" in page and "not yet been recorded on a real pump" in page
+    for name in ("index", "how-it-works", "technology", "demo", "team", "contact"):
+        assert "never run on a real" not in HTML[name] and "has not yet run on a real ESP32" not in HTML[name], name
+    b = _builder()
+    changed = {"counted": {"bench": 1, "development": 2, "evaluation": 1}}
+    p = tmp_path / "measurements.json"
+    p.write_text(json.dumps(changed))
+    monkeypatch.setattr(b, "MEASUREMENTS", p)
+    assert "2 development and 1 evaluation recording(s) from a real pump" in _text(b.build()["technology.html"])
+    changed["counted"] = {"bench": 0, "development": 0, "evaluation": 0}
+    p.write_text(json.dumps(changed))
+    assert "has not yet run on a real board" in _text(b.build()["technology.html"])

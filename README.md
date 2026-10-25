@@ -30,11 +30,11 @@ Mac/Linux one was run from a fresh copy and the server, token check and sign-in 
 
 | part | status |
 |---|---|
-| server: Time-to-Trouble clock, seven consistency rules, trust engine, node verification, evidence log, playbook, private alerts with a retry queue, API, dashboard with an offline Emergency view | built; 320 automated tests pass |
+| server: Time-to-Trouble clock, seven consistency rules, trust engine, node verification, evidence log, playbook, private alerts with a retry queue, API, dashboard with an offline Emergency view | built; 426 automated tests pass |
 | simulated plant, simulated Witness Node, six attack drills, false-alarm runs | built; results below |
 | clock against EPANET hydraulics (310 randomized systems) | done; results below |
 | Witness Node signal processing, classifier, install calibration, button/LED/buzzer logic, message signing | built in portable C++; run against the Python reference and synthetic pumps on a normal computer |
-| Witness Node Arduino sketch (I2S, I2C, Wi-Fi, flash) | written, compiles for the ESP32 (core 3.3.12), **never run on a real ESP32** |
+| Witness Node Arduino sketch (I2S, I2C, Wi-Fi, flash) | written, compiles for the ESP32 (core 3.3.12), and **has booted on a real ESP32-S board** (bench boot log in `measurements/`). Sensor data, Wi-Fi to the server and a real pump are **not yet verified**; the accelerometer module answered `0x72` instead of `0x68`, which is being checked |
 | real pump: does the node tell on from off? | **not measured** (needs the parts: `docs/HARDWARE_STAGE.md`) |
 | in-browser demo (site/demo/): the real dashboard replaying recorded drills, no server | built; regenerate with `python -m hydrowitness.sim.web_recordings`, tested against the saved drill results |
 | real SCADA connection, real systems | not done |
@@ -50,7 +50,7 @@ To host it, see `site/README.md` (Vercel with Root Directory `site`, or Netlify 
 
 ```
 pip install -r requirements.txt
-python3 -m pytest tests -q                                   # 320 tests, about 110 s (needs g++ for the firmware tests)
+python3 -m pytest tests -q                                   # 426 tests, about 135 s (needs g++ for the firmware tests)
 HYDROWITNESS_TOKEN=choose-a-long-random-token uvicorn hydrowitness.api:app --port 8000
 ```
 
@@ -61,6 +61,8 @@ site, see `docs/INTERFACES.md`. Re-run the validations:
 ```
 python3 -m hydrowitness.sim.wntr_validation        # V1, about 35 s, writes results/v1_wntr_validation.*
 python3 -m hydrowitness.sim.validation_report      # V2, about 70 s, writes results/v2_drills.*
+python3 -m hydrowitness.sim.evaluation --jobs 2    # HydroWitness against a plain alarm panel, about 3 min, writes results/evaluation.*
+python3 training/measure.py report                 # what real measurements exist (none from a pump yet), writes results/measurements.*
 ```
 
 ## Results (simulated plant; read the limits)
@@ -102,11 +104,13 @@ START_HERE_*.bat/.command, run_local.py   one-click start (see Quick start)
 site/                    the website: six pages plus an in-browser demo of the real dashboard (static; see site/README.md for putting it on Vercel or Netlify)
 tools/                   build_site.py writes the website's pages from tools/site_src/
 hydrowitness/            the server: engine/ (clock, rules, trust, evidence checks), security/, evidence_log, playbook, alerts, api, static/ dashboard
-hydrowitness/sim/        simulated plant and node, drills, V1 and V2 validation scripts
+hydrowitness/sim/        simulated plant and node, drills, V1 and V2 validation scripts, evaluation.py (comparison with a plain alarm panel)
 firmware/witness_node/   Arduino sketch plus portable C++ core; firmware/host_tests/ builds and tests it on a computer
-training/                node_reference.py (the one definition of what the node computes), train_classifier.py (the V3 analysis), synth.py
-tests/                   320 tests
-results/                 saved validation output
+training/                node_reference.py (the one definition of what the node computes), train_classifier.py (the V3 analysis), synth.py,
+                         measure.py (record and report real measurement sessions: bench, development, evaluation)
+measurements/            one folder per real recording session; today only a bench boot log, no pump
+tests/                   426 tests
+results/                 saved validation, evaluation and measurement output
 docs/                    INTERFACES.md, WIRING.md, HARDWARE_STAGE.md
 ```
 

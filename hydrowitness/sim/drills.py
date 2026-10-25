@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from typing import Callable, Optional
 
 from ..demo import DEMO_SECRETS, demo_profile
-from ..schemas import ManualReading, SiteProfile
+from ..schemas import ManualReading, ScadaSnapshot, SiteProfile
 from ..service import HydroWitnessCore
 from .fake_node import FakeNode
 from .tank_system import ScadaView, TankSystem
@@ -128,7 +128,8 @@ INJECT_ACTIONS = {
 
 class DrillRunner:
     def __init__(self, scenario_id: str, *, seed: int = 1, dt: float = 5.0, warmup_s: float = 2400.0,
-                 operator_script: bool = False, profile: Optional[SiteProfile] = None):
+                 operator_script: bool = False, profile: Optional[SiteProfile] = None,
+                 on_scada: Optional[Callable[[float, Optional[ScadaSnapshot]], None]] = None):
         if scenario_id not in SCENARIOS:
             raise KeyError(scenario_id)
         self.scenario = SCENARIOS[scenario_id]
@@ -148,6 +149,7 @@ class DrillRunner:
         self.last_view: dict = {}
         self.elapsed = 0.0
         self.warmup_s = warmup_s
+        self.on_scada = on_scada          # sees what the screen shows each step (None when it shows nothing); used by evaluation.py
         self.fast_forward(warmup_s)
 
     # ---- running
@@ -155,6 +157,8 @@ class DrillRunner:
         self.sys.step()
         now = self.sys.t
         snap = self.view.snapshot()
+        if self.on_scada is not None:
+            self.on_scada(now, snap)
         if snap is not None:
             self.core.ingest_scada(snap)
         for node in self.nodes.values():

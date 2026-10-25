@@ -27,6 +27,18 @@ If `acc_rate` is outside 990-1010, the accelerometer's own clock is off and the 
 slightly outside their windows. Note the number; the other 13 features still work. If the microphone reads
 silence, set `MIC_USE_RIGHT_SLOT 1` in `config.h`.
 
+### Stage 7 progress
+
+Recorded in `measurements/` (`python3 training/measure.py report` lists it in `results/measurements.md`).
+
+| check | state |
+|---|---|
+| boot line | **seen, 25 Oct 2026**, node NB: boot 14, firmware 861255cb, mains 60 Hz, "not calibrated". The pasted text has no `FATAL`, "accelerometer not found" or "microphone could not start" line, but it stops at the next line, so nothing after it was supplied. Board: an ESP32-S development board with 38 pins. Buzzer: active, on GPIO27 (the pin `config.h` uses) |
+| accelerometer | **open.** The module answered `WHO_AM_I` = `0x72`; a genuine MPU-6050 answers `0x68`. The sketch warns and carries on, but a different chip may not support the FIFO the sketch relies on. Read `acc_rate`, `acc_overflows` and `i2c_errs` from the `S,` status lines (one every 60 s, or type `status`). If `acc_rate` is 0 or `i2c_errs` keeps rising, replace the module with a GY-521 that answers `0x68` |
+| microphone, button and lights, Wi-Fi and time, server | not yet reported |
+
+Do not calibrate, and do not put the node on a pump, until `acc_rate` is between 990 and 1010.
+
 ## Stage 8: record on a real pump and measure (gate: validation V3)
 
 The question: on this real equipment, do the node's features separate **on** from **off** for time periods the
@@ -75,7 +87,7 @@ train_classifier printout, and the on-device calibration verdicts. Do not summar
 
 | not tested | why it matters | where it gets tested |
 |---|---|---|
-| the ESP32 sketch running (I2S, I2C, Wi-Fi, flash storage, HTTP) | it compiles for the ESP32 (esp32 core 3.3.12, real compiles found and fixed a name clash and an attribute the Arduino IDE rejects) and passes the computer tests, but it has never run on a real board; the first run may still need small fixes | stage 7 |
+| the ESP32 sketch running (I2S, I2C, Wi-Fi, flash storage, HTTP) | it compiles for the ESP32 (esp32 core 3.3.12, real compiles found and fixed a name clash and an attribute the Arduino IDE rejects), passes the computer tests, and **has booted on a real ESP32-S board** (see "Stage 7 progress" below). What it reads from the sensors, Wi-Fi to the server and everything involving a pump are not yet verified; the first full run may still need small fixes | stage 7 |
 | whether real pump vibration and sound separate on from off | all node tests use synthetic signals | stage 8, V3 |
 | the accelerometer's actual sample rate | the hum bands assume 1000 Hz | stage 7, `status` |
 | HTTPS (`USE_TLS 1`) | built but never exercised; a plain-HTTP node on a private network is the tested path | stage 7, optional |

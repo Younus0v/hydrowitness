@@ -42,6 +42,10 @@ UNTRUSTED_EXTRA_UNCERTAINTY_FT = 1.5
 EXPECTED_HORIZON_H = 72
 HEADLOSS_EXPONENT = 1.852   # Hazen-Williams: friction loss grows with flow^1.852. Added after validation V1 (see results/).
 
+# How the clock describes the age of its tank reading (plain labels only; the numbers in the estimate do not change)
+CLOCK_FRESH_S = 900.0        # a reading this young is "fresh"
+CLOCK_OLD_S = 3600.0         # older than this is "old": the screen says so and asks for a new reading
+
 # Alerts
 ESCALATE_AFTER_S = 300.0
 # Alerts that could not be delivered (the private channel is down or unreachable) are kept and tried again

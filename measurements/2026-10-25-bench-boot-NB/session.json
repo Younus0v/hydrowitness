@@ -1,0 +1,15 @@
+{
+ "schema": 1,
+ "id": "2026-10-25-bench-boot-NB",
+ "purpose": "bench",
+ "date": "2026-10-25",
+ "operator": "hardware teammate (relayed by the team lead)",
+ "board": "ESP32-S development board, 38 pins (as described by the hardware teammate)",
+ "accelerometer": "module sold as an MPU6050 (GY-521 style); WHO_AM_I read 0x72, a genuine MPU-6050 answers 0x68; chip not identified",
+ "microphone": "",
+ "buzzer": "active buzzer on GPIO27 (matches PIN_BUZZER in firmware/witness_node/config.h)",
+ "pump": "",
+ "mounting": "",
+ "source": "serial text pasted by the hardware teammate through the team lead; not captured by this tool",
+ "notes": "First boot output of the firmware on a real board, node NB. The boot counter (14) is kept in the board's flash. Not calibrated yet. The pasted text has no FATAL, 'accelerometer not found' or 'microphone could not start' line, but it stops at the WHO_AM_I warning, so the status lines, Wi-Fi and everything after were not supplied. No pump was involved."
+}

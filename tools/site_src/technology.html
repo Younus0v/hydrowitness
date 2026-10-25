@@ -90,7 +90,7 @@ description: Read-only by design. How the clock, the seven consistency rules and
     <div class="prose rv">
       <h2>Cheap on purpose.</h2>
       <p>The only hardware is the Witness Node, and it has no pressure sensor. It listens to the pump instead of measuring the pipe.</p>
-      <p>The parts are all off-the-shelf. The firmware's signal processing was tested against synthetic pumps on a normal computer; it has not yet run on a real ESP32.</p>
+      <p>The parts are all off-the-shelf. The firmware's signal processing was tested against synthetic pumps on a normal computer. {{HW_STATUS_TEXT}}</p>
     </div>
     <div class="rv">
       <ul class="list">
@@ -121,13 +121,35 @@ description: Read-only by design. How the clock, the seven consistency rules and
     </div>
     <p class="fine rv">With the forgery, red happens when a person reads the pump. With the hidden valve, only customer calls notice it, and customer reports can't turn the light red on their own, so a flood of calls can't be used to fake an emergency.</p>
 
+    <div class="rv" style="margin-top:44px" id="alarm-panel">
+      <h3>Against a plain alarm panel</h3>
+      <p>An ordinary alarm panel believes the screen. It raises an alarm when the tank is low (below {{EVAL_LOW_LEVEL_FT}} ft here), when the pressure is low (below {{EVAL_LOW_PSI}} psi), or when no data has arrived for {{EVAL_NO_DATA_S}} seconds. We ran it beside HydroWitness on the same simulated attacks. We also gave it a more generous second version that alarms when the readings stop changing for {{EVAL_FLAT_S}} seconds, so the comparison can't be said to hand it a weak hand.</p>
+    </div>
+    <div class="tbl-wrap rv">
+      <table class="tbl">
+        <caption>Nobody walks to the pump. {{EVAL_RUNS_PER_ROW}} runs per row ({{EVAL_SEEDS}} seeds on each of two tank sizes), {{EVAL_HORIZON_MIN}} minutes allowed after the attack starts. Each cell is how many runs raised anything, with the median seconds after the attack began.</caption>
+        <thead><tr><th scope="col">Attack</th><th scope="col">HydroWitness</th><th scope="col">Plain alarm panel</th><th scope="col">Alarm panel plus flat-line check</th></tr></thead>
+        <tbody>
+          {{EVAL_TABLE}}
+        </tbody>
+      </table>
+    </div>
+    <ul class="list rv" style="margin-top:20px">
+      <li>{{EVAL_MISSED_TEXT}}</li>
+      <li>{{EVAL_FALSE_TEXT}}</li>
+      <li>{{EVAL_COUNTDOWN_TEXT}}</li>
+      <li>{{EVAL_FAILURE_TEXT}}</li>
+    </ul>
+    <p class="fine rv">The plain panel does well where the screen goes dark, because a missing signal is something it was built to notice. It sees nothing on a frozen screen, a replay or a forgery until the tank itself falls low, and a forged screen never shows that. On the replay, the flat-line check fires only because our simulated attacker's recording runs out after 30 minutes and the screen then freezes. A replay that kept going would not trigger it. All of this is a simulation: the plant, the attacks and the Witness Nodes are simulated, and the nodes' error rates are our assumptions, not measurements. The settings, every run and how to repeat them are in <code>results/evaluation.md</code> in the repository.</p>
+
     <div class="rv" style="margin-top:36px">
         <h3>Also tested</h3>
         <ul class="list">
-          <li>320 automated tests pass, covering the clock, the rules, the trust light, message signing, the log and the dashboard.</li>
+          <li>426 automated tests pass, covering the clock, the rules, the trust light, message signing, the log and the dashboard.</li>
           <li>The clock was checked against the EPANET hydraulic simulator on 310 randomized systems. Its worst case was never later than the true time in normal conditions. If real demand is far above the configured peak, it can be late (8 of 40 stress cases), so the dashboard states the demand it assumes.</li>
           <li>With the alert channel switched off, hung and then brought back, the server stayed responsive, kept the alert waiting, and sent it, marked as late, once the channel returned. The Emergency view opens by itself while an alert is waiting or the server can't be reached. A Witness Node that can't reach the server can't report, and it does not save its readings for later.</li>
           <li>On a healthy simulated plant: 0 false amber and 0 false red over 10 site-days, while pumps really started or stopped 33 times.</li>
+          <li>A longer run on two tank sizes found a real bug: on a small tank, a normal pump stop could look like a tank that rises while every pump is stopped, and the light turned amber for nothing. It is fixed, and a test guards it.</li>
         </ul>
     </div>
   </div>

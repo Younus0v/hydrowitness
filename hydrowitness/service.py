@@ -12,9 +12,9 @@ from typing import Callable, Optional
 
 from . import config as C
 from .alerts import AlertManager
-from .engine import evidence_checks
+from .engine import evidence_checks, next_check, quantities
 from .engine.consistency import ConsistencyChecker
-from .engine.time_to_trouble import (ClockResult, CreditedFlow, LevelReading, compute_clock,
+from .engine.time_to_trouble import (ClockResult, CreditedFlow, LevelReading, clock_text, compute_clock,
                                      format_minutes, l_min_ft)
 from .engine.trust import ORDER, TrustEngine, TrustInputs, fmt_t
 from .evidence_log import EvidenceLog
@@ -48,6 +48,9 @@ class HydroWitnessCore:
         self._rej_logged: dict[str, float] = {}
         self.last_result = None
         self.alerts_enabled = True      # the live app turns this off until the first real data arrives
+        self._new_readings: list[ManualReading] = []     # readings since the last evaluation, for "what changed"
+        self._prev_summary: Optional[dict] = None
+        self.last_update: Optional[dict] = None
 
     # ---------------------------------------------------------------- ingest
     def ingest_scada(self, snap: ScadaSnapshot) -> None:
@@ -93,6 +96,7 @@ class HydroWitnessCore:
     def ingest_manual(self, reading: ManualReading) -> None:
         with self.lock:
             self.manual.append(reading)
+            self._new_readings.append(reading)
             if len(self.manual) > 2000:
                 self.manual = self.manual[-1000:]
             self.log.append(f"operator:{reading.operator}", "manual_reading", reading.model_dump(), reading.t)
@@ -117,7 +121,9 @@ class HydroWitnessCore:
         with self.lock:
             now = self.clock() if now is None else now
             res = self.last_result or self.evaluate(now)
-            started = self.playbook.start(now, res["clock"].get("worst_min"), by=operator)
+            ck = res["clock"]
+            basis = "unavailable" if not ck.get("ok") else ("not_falling" if ck.get("worst_min") is None else None)
+            started = self.playbook.start(now, ck.get("worst_min"), by=operator, basis=basis)
             if started:
                 self.log.append(f"operator:{operator}", "playbook_started", {"manual": True}, now)
             return started
@@ -218,26 +224,94 @@ class HydroWitnessCore:
             self.log.maybe_daily_anchor(now)
 
             level = self._choose_level(now, self.state)
-            clock = compute_clock(p, now, level, self._credits(now))
+            credits = self._credits(now)
+            clock = compute_clock(p, now, level, credits)
 
             if self.state != "green" and not self.playbook.active:
-                self.playbook.start(now, clock.worst_min)
+                self.playbook.start(now, clock.worst_min,
+                                    basis="unavailable" if not clock.ok else ("not_falling" if clock.worst_min is None else None))
                 self.log.append("playbook", "playbook_started", {"manual": False, "state": self.state}, now)
             if self.state == "green" and self.playbook.active and not tr.latched:
                 self.playbook.reset()
                 self.log.append("playbook", "playbook_closed", {}, now)
 
             headline = (tr.cards[0]["title"] if tr.cards else ", ".join(tr.flags) or "state changed")
-            headline += f". Worst case {format_minutes(clock.worst_min) if clock.ok else 'unknown'}."
+            headline += f". Worst case: {clock_text(clock, 'worst')}."
             if self.alerts_enabled:
                 self.alerts.on_state(now, prev, self.state, p.site_name, headline, p.emergency_contacts)
                 self.alerts.tick(now, tr.needs_ack, p.site_name, headline, p.emergency_contacts)
 
-            view = self._view(now, tr, clock, rules)
+            view = self._view(now, tr, clock, rules, level, credits)
             self.last_result = view
             return view
 
-    def _view(self, now: float, tr, clock: ClockResult, rules) -> dict:
+    # ------------------------------------------------------------------ what a new reading changed
+    @staticmethod
+    def _describe_reading(r: ManualReading) -> str:
+        who = r.operator or "operator"
+        if r.kind == "tank_level_ft":
+            return f"{who} read the tank at {float(r.value):.1f} ft"
+        if r.kind == "gauge_psi":
+            return f"{who} read a gauge at {float(r.value):.1f} psi"
+        if r.kind == "pump_running":
+            return f"{who} saw {r.pump_id} {'RUNNING' if r.value else 'STOPPED'}"
+        if r.kind == "flow_confirmed":
+            return f"{who} {'confirmed water is moving from' if r.value else 'found no water moving from'} {r.pump_id}"
+        if r.kind == "customer_call":
+            return f"a customer at {r.address or 'an unknown address'} called about low pressure"
+        return f"{who} entered a reading"
+
+    def _clock_without(self, now: float, new: list[ManualReading], state: str) -> dict:
+        """What the clock would say RIGHT NOW if the new readings had not arrived, with the light as it was before them.
+        Comparing with this (not with the previous evaluation) keeps ordinary time passing out of "what changed"."""
+        saved = self.manual
+        self.manual = [r for r in saved if not any(r is n for n in new)]
+        try:
+            ck = compute_clock(self.profile, now, self._choose_level(now, state), self._credits(now))
+        finally:
+            self.manual = saved
+        return {"worst_text": clock_text(ck, "worst"), "expected_text": clock_text(ck, "expected"),
+                "level_source_text": ck.level_source_text, "credited_gpm": ck.credited_gpm}
+
+    def _track_update(self, now: float, summary: dict) -> Optional[dict]:
+        """When readings arrived since the last evaluation, say what they changed (or that they changed nothing)."""
+        new, self._new_readings = self._new_readings, []
+        prev, self._prev_summary = self._prev_summary, summary
+        if new and prev is not None:
+            base = self._clock_without(now, new, prev["state"])
+            prev = {**prev, **base}
+            changes = []
+            counted = prev["worst_text"] != summary["worst_text"] or prev["expected_text"] != summary["expected_text"]
+            for key, label in (("worst_text", "Worst case"), ("expected_text", "Expected case")):
+                if prev[key] != summary[key]:
+                    changes.append(f"{label}: {prev[key]} \u2192 {summary[key]}")
+            if not counted:
+                changes.append(f"The countdown did not change (worst case {summary['worst_text']})")
+            if prev["level_source_text"] != summary["level_source_text"] and summary["level_source_text"]:
+                changes.append(f"The tank level now comes from {summary['level_source_text']}")
+            if prev["state"] != summary["state"]:
+                changes.append(f"The light went from {prev['state']} to {summary['state']}")
+            if prev["next_id"] != summary["next_id"]:
+                changes.append("The next useful check is now: " + (summary["next_title"] or "nothing"))
+            if prev["credited_gpm"] != summary["credited_gpm"]:
+                changes.append(f"Credited inflow: {prev['credited_gpm']:.0f} gpm \u2192 {summary['credited_gpm']:.0f} gpm")
+            what = "; ".join(self._describe_reading(r) for r in new[-3:])
+            what = what[:1].upper() + what[1:]
+            if counted:
+                head = f"{what}. That changed the countdown: worst case {prev['worst_text']} \u2192 {summary['worst_text']}."
+            elif len(changes) > 1:
+                head = f"{what}. The countdown stayed the same, but other things changed."
+            else:
+                head = f"{what}. That did not change the estimate."
+            self.last_update = {
+                "t": now, "readings": [self._describe_reading(r) for r in new[-3:]], "headline": head,
+                "changes": changes, "before": {k: prev[k] for k in ("worst_text", "expected_text", "state")},
+                "after": {k: summary[k] for k in ("worst_text", "expected_text", "state")}}
+        if self.last_update is not None and now - self.last_update["t"] > 900:
+            self.last_update = None
+        return self.last_update
+
+    def _view(self, now: float, tr, clock: ClockResult, rules, level=None, credits=None) -> dict:
         p = self.profile
         latest = self.snaps[-1] if self.snaps else None
         nodes = []
@@ -255,14 +329,25 @@ class HydroWitnessCore:
                 "state_since": st.state_since,
             })
         clock_d = clock.as_dict()
-        clock_d["worst_text"] = format_minutes(clock.worst_min) if clock.ok else "unknown"
-        clock_d["expected_text"] = format_minutes(clock.expected_min) if clock.ok else "unknown"
+        clock_d["worst_text"] = clock_text(clock, "worst")
+        clock_d["expected_text"] = clock_text(clock, "expected")
         clock_d["l_min_ft"] = clock.l_min_ft if clock.l_min_ft is not None else (l_min_ft(p) if p.mode == "storage" else None)
         age = None if latest is None else now - latest.t
         log_ok, log_bad, log_msg = self.log.verify_cached()
         checks = evidence_checks.build(
             now=now, scada_latest=latest, tr=tr, nodes=nodes, manual=self.manual,
             log_ok=log_ok, log_bad=log_bad, log_msg=log_msg, log_count=len(self.log.records))
+        qty = quantities.build(profile=p, now=now, latest=latest, nodes=nodes, manual=self.manual,
+                               credits=credits or [], clock=clock, scada_near=self._scada_near,
+                               scada_stale=tr.stale, trust_state=tr.state)
+        nxt = next_check.choose(profile=p, now=now, clock=clock, trust_state=tr.state, quantities=qty,
+                                nodes=nodes, level=level, credits=credits or [], cards=tr.cards)
+        update = self._track_update(now, {
+            "worst_text": clock_d["worst_text"], "expected_text": clock_d["expected_text"],
+            "level_source_text": clock.level_source_text, "state": tr.state,
+            "credited_gpm": clock.credited_gpm,
+            "next_id": nxt["primary"]["id"] if nxt["primary"] else None,
+            "next_title": nxt["primary"]["title"] if nxt["primary"] else None})
         return {
             "mode": self.name, "now": now, "now_text": fmt_t(p, now), "site": p.site_name,
             "trust": {**tr.as_dict(), "thresholds": {"amber": C.AMBER_AT, "red": C.RED_AT}},
@@ -279,6 +364,9 @@ class HydroWitnessCore:
                           "type": r["type"], "content": r["content"]} for r in self.log.tail(40)][::-1],
             "log": {"count": len(self.log.records), "head_hash": self.log.head_hash},
             "evidence_checks": checks,
+            "quantities": qty,
+            "next_check": nxt,
+            "last_update": update,
             "alerts": self.alerts.history[-10:][::-1],
             "alert_delivery": self.alerts.delivery(now),
         }

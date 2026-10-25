@@ -2,7 +2,8 @@
 <html lang="en">
 <head>
 <script src="shim.js"></script>
-<style id="webdemo-style">#enter,#drill .row + h3,#drill .row + h3 + .row,#drill .attack-grid,[data-act="pb-start"],[data-act="pb-step"],[data-act="ack"]{display:none !important}</style>
+<script src="compare.js" defer></script>
+<style id="webdemo-style">#enter,#drill .row + h3,#drill .row + h3 + .row,#drill .attack-grid,[data-act="pb-start"],[data-act="pb-step"],[data-act="ack"],[data-act="enter-reading"],[data-act="focus-level"]{display:none !important}</style>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="dark light">
@@ -170,6 +171,46 @@ details.rules summary { cursor: pointer; padding: .4rem 0; font-weight: 600; }
   #emergency { border: 2px solid #000; }
 }
 
+/* chips: every status is a word and a shape as well as a colour */
+.chip { display: inline-flex; align-items: center; gap: .35rem; border: 1.5px solid var(--line-strong); border-radius: 999px; padding: .05rem .7rem .05rem .4rem; font-size: .88rem; font-weight: 700; white-space: nowrap; }
+.chip svg { width: 1rem; height: 1rem; flex: none; }
+.chip.good { border-color: var(--ok); color: var(--ok); }
+.chip.warn { border-color: var(--warn); color: var(--warn); }
+.chip.bad { border-color: var(--alarm); color: var(--alarm); }
+.chip.none { color: var(--muted); }
+
+/* next useful check, and what the last reading changed */
+.next { border: 3px solid var(--state, var(--line-strong)); background: var(--panel); padding: .9rem 1.1rem 1.1rem; }
+.next .kicker { font-size: .9rem; font-weight: 700; color: var(--muted); letter-spacing: .02em; }
+.next .t { font-size: 1.35rem; font-weight: 800; letter-spacing: -.01em; margin: .1rem 0 .3rem; }
+.next p { max-width: 66ch; margin: .35rem 0; }
+.next .acts { margin-top: .7rem; display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; }
+.next.calm { border-color: var(--line); }
+.update { border-left: 6px solid var(--water); background: color-mix(in srgb, var(--water) 12%, var(--panel)); padding: .55rem .9rem; margin-top: .8rem; max-width: 70ch; }
+.update ul { margin: .3rem 0 0; padding-left: 1.2rem; }
+.update li { margin: .15rem 0; }
+.worst.unavail { font-size: clamp(1.6rem, 5.5vw, 2.5rem); color: var(--muted); }
+.assume { margin-top: .7rem; }
+.assume summary { cursor: pointer; font-weight: 700; padding: .25rem 0; }
+.assume ul { margin: .4rem 0 0; padding-left: 1.2rem; }
+.assume li { margin: .35rem 0; max-width: 66ch; }
+
+/* evidence by quantity */
+.q { padding: .95rem 0; border-top: 1px solid var(--line); }
+.q:last-child { border-bottom: 1px solid var(--line); }
+.q .head { display: flex; align-items: center; gap: .4rem .8rem; flex-wrap: wrap; margin-bottom: .35rem; }
+.q .val { font-weight: 800; font-size: 1.1rem; }
+.src { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, .8fr) minmax(0, .8fr); gap: .05rem .8rem; padding: .3rem 0; border-top: 1px dashed var(--line); font-size: .95rem; }
+.src .n { color: var(--muted); grid-column: 1 / -1; font-size: .88rem; }
+@media (max-width: 560px) { .src { grid-template-columns: 1fr 1fr; } .src > :first-child { grid-column: 1 / -1; font-weight: 700; } }
+.limit { color: var(--muted); font-size: .9rem; margin-top: .35rem; max-width: 70ch; }
+.gap { display: grid; grid-template-columns: 1.6rem minmax(0, 1fr); gap: .1rem .5rem; padding: .55rem 0; border-top: 1px solid var(--line); max-width: 74ch; }
+.gap:last-of-type { border-bottom: 1px solid var(--line); }
+.gap svg { width: 1.2rem; height: 1.2rem; margin-top: .15rem; }
+details.more { border-top: 1px solid var(--line); padding: .15rem 0; }
+details.more > summary { cursor: pointer; padding: .6rem 0; font-weight: 700; font-size: 1.05rem; }
+details.more[open] > summary { margin-bottom: .4rem; }
+
 /* witnesses */
 .pump { padding: .9rem 0; border-top: 1px solid var(--line); }
 .pump:last-child { border-bottom: 1px solid var(--line); }
@@ -234,6 +275,7 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
 <body data-state="none">
 <div id="webdemo-note" style="padding:.55rem 1rem;font:500 .9rem/1.4 system-ui,sans-serif;background:Canvas;color:CanvasText;border-bottom:1px solid GrayText"><b>Web demo.</b> This page replays recorded runs of the real HydroWitness engines on a simulated plant. Pick a drill on the right, and tick the box first if you want a scripted operator to check the pump. Breaking things yourself and entering your own readings need the downloadable version.</div>
 <a class="skip" href="#main">Skip to the trust state</a>
+<a class="skip" href="#nextcheck" style="top:2.4rem">Skip to the next useful check</a>
 
 <div id="lost" class="strip" role="alert" hidden></div>
 <div id="drillbar" class="strip" hidden></div>
@@ -255,11 +297,13 @@ dialog::backdrop { background: rgba(0,0,0,.6); }
   <div class="layout">
     <div class="read">
       <section id="emergency" aria-labelledby="h-em" hidden></section>
+      <section id="nextcheck" aria-label="Next useful check" tabindex="-1" hidden></section>
       <section id="clock" aria-labelledby="h-clock"></section>
-      <section id="checks" aria-labelledby="h-checks" hidden></section>
-      <section id="why" aria-labelledby="h-why"></section>
       <section id="witness" aria-labelledby="h-wit"></section>
-      <section id="timeline" aria-labelledby="h-log"></section>
+      <section id="gaps" aria-labelledby="h-gaps"></section>
+      <section id="checks" aria-label="Evidence checks" hidden></section>
+      <section id="why" aria-label="Why this state"></section>
+      <section id="timeline" aria-label="What happened"></section>
     </div>
 
     <aside class="rail" aria-label="Actions">
@@ -332,7 +376,10 @@ let token = ""; try { token = sessionStorage.getItem("hw_token") || ""; } catch 
 { const m = /^#token=([A-Za-z0-9_-]+)$/.exec(location.hash);
   if (m) { token = m[1]; try { sessionStorage.setItem("hw_token", token); } catch { /* ignore */ }
     try { history.replaceState(null, "", location.pathname + location.search); } catch { /* ignore */ } } }
-const S = { s: null, profile: null, ok: 0, fails: 0, prevState: null, scenarios: null, polls: 0, em: null };
+const S = { s: null, profile: null, ok: 0, fails: 0, prevState: null, scenarios: null, polls: 0, em: null, open: {} };
+/* which collapsible sections the person has opened, so a refresh never closes them */
+document.addEventListener("toggle", ev => { const d = ev.target; if (d && d.dataset && d.dataset.det) S.open[d.dataset.det] = d.open; }, true);
+const isOpen = (id, dflt) => ((S.open[id] ?? dflt) ? " open" : "");
 
 /* ---------------------------------------------------------------- icons: every state has its own shape */
 const ICON = {
@@ -397,6 +444,16 @@ function flagText(f) {
   return FLAG[f] || f;
 }
 const RUNNING = v => (v ? "running" : "stopped");
+/* status words for the evidence panels. Colour is never the only signal: each has a word and a shape. */
+const CHIP = {
+  independent: ["good", "Independent reading", "yes"], agree: ["good", "Screen and witness agree", "yes"],
+  screen_only: ["warn", "Screen only", "warn"], estimate: ["warn", "Estimate, not measured", "warn"],
+  conflict: ["bad", "Conflict", "no"], unavailable: ["none", "Unavailable", "open"],
+};
+const chip = st => { const [cls, word, ic] = CHIP[st] || CHIP.unavailable; return `<span class="chip ${cls}">${ICON[ic]}${esc(word)}</span>`; };
+const QUALITY = { fresh: ["good", "Fresh reading", "yes"], aging: ["warn", "Reading is aging", "warn"], old: ["bad", "Old reading", "no"], model_only: ["warn", "Model only", "warn"] };
+const qchip = q => { const x = QUALITY[q]; return x ? `<span class="chip ${x[0]}">${ICON[x[2]]}${esc(x[1])}</span>` : ""; };
+const ago = a => (a == null ? "" : dur(a) + " ago");
 
 /* ---------------------------------------------------------------------------------- rendering */
 function setHTML(el, html) {
@@ -438,7 +495,13 @@ function renderVerdict(s) {
   const flags = t.flags.map(flagText).join(" ");
   let sub;
   if (st === "green") sub = "Every independent reading matches what SCADA reports.";
-  else if (st === "red") sub = `Read the gauge and the sight glass yourself. The clock below runs on the last trusted tank level. ${why} ${flags}`;
+  else if (st === "red") {
+    const c = s.clock;
+    const clk = !c ? "" : !c.ok ? "There is no countdown until the tank is read."
+      : c.quality === "model_only" ? "The clock below is a model built from the last trusted tank level."
+      : c.level_source_text ? `The clock below uses ${c.level_source_text}.` : "";
+    sub = `Read the gauge and the sight glass yourself. ${clk} ${why} ${flags}`;
+  }
   else sub = `Go and look at the pump before you rely on the screen. ${why} ${flags}`;
   let latch = "";
   if (t.latched && t.raw_state === "green") {
@@ -497,6 +560,31 @@ function updateTank(c) {
   $("#tk-top").textContent = H + " ft";
 }
 
+function renderNext(s) {
+  const el = $("#nextcheck"), n = s.next_check, lu = s.last_update;
+  if (!n) { el.hidden = true; return; }                     // a server or recording without this feature
+  el.hidden = false;
+  const p = n.primary;
+  let body;
+  if (!p) {
+    body = `<div class="next calm"><div class="kicker">Next useful check</div><p>${esc(n.text)}</p></div>`;
+  } else {
+    const alts = (n.alternatives || []).length ? `<details class="assume" data-det="alts"${isOpen("alts", false)}><summary>Other checks that would help (${n.alternatives.length})</summary><ol>${
+      n.alternatives.map(a => `<li><b>${esc(a.title)}.</b> ${esc(a.why)}</li>`).join("")}</ol></details>` : "";
+    const go = p.enter ? `<button class="btn primary" type="button" data-act="enter-reading" data-kind="${esc(p.enter.kind)}" data-pump="${esc(p.enter.pump_id || "")}" data-focus="nextgo">Enter this reading</button>` : "";
+    body = `<div class="next"><div class="kicker">Next useful check${p.urgency === "critical" ? " (do this first)" : ""}</div>
+      <div class="t" id="h-next">${esc(p.title)}</div>
+      <p>${esc(p.what)}</p>
+      <p><b>Why:</b> ${esc(p.why)}</p>
+      <p><b>What it would change:</b> ${esc(p.effect)}</p>
+      <div class="acts">${go}</div>${alts}</div>`;
+  }
+  if (lu) {
+    body += `<div class="update" role="status"><b>${esc(lu.headline)}</b><ul>${(lu.changes || []).map(c => `<li>${esc(c)}</li>`).join("")}</ul></div>`;
+  }
+  setHTML(el, body);
+}
+
 function renderClock(s) {
   const c = s.clock, el = $("#clock"), p = S.profile;
   if (!el.dataset.built) {
@@ -505,15 +593,20 @@ function renderClock(s) {
   }
   const h = $("#h-clock"); h.textContent = `Time until the farthest customer falls below ${p?.min_pressure_psi ?? 20} psi`;
   let body;
+  const lines = Array.isArray(c.assumption_lines) ? c.assumption_lines : [];
+  const assume = lines.length ? `<details class="assume" data-det="assume"${isOpen("assume", true)}><summary>What this estimate assumes</summary><ul>${lines.map(x => `<li>${esc(x)}</li>`).join("")}</ul></details>` : "";
   if (!c.ok) {
-    body = `<p class="worst" style="font-size:1.8rem">No clock yet</p><p>${esc(c.basis)}</p>`;
+    body = `<p class="worst unavail num">Estimate unavailable</p><p>${esc(c.basis)}</p>
+      <div class="callout"><strong>No number is shown because there is nothing to build it from.</strong> Nothing is guessed.
+      <div style="margin-top:.5rem"><button class="btn small" type="button" data-act="focus-level">Enter tank level</button></div></div>${assume}`;
   } else {
     body = `<dl><dt class="k">Worst case: peak demand${p?.peak_demand_gpm ? " (" + Math.round(p.peak_demand_gpm) + " gpm)" : ""}, no inflow we can prove</dt><dd class="worst num">${esc(c.worst_text)}</dd>
-      <dt class="k">Expected: typical demand for this hour</dt><dd class="expected num">${esc(c.expected_text)}</dd></dl>
-      <p class="small muted">Based on ${esc(c.basis)}${c.uncertainty_ft ? `, give or take ${c.uncertainty_ft.toFixed(1)} ft` : ""}. ${c.credited_pumps.length ? "Inflow counted from " + esc(c.credited_pumps.join(", ")) + " because someone confirmed water moving." : "No pump is counted as adding water until a witness shows it moving."}</p>
-      <p class="small muted">Demand above that peak (a main break, fire flow) would drain the tank faster. Read the tank to re-anchor this clock.</p>`;
+      <dt class="k">Expected: typical demand for this hour, up to ${esc(c.horizon_h ?? 72)} h ahead</dt><dd class="expected num">${esc(c.expected_text)}</dd></dl>
+      ${c.quality ? `<p>${qchip(c.quality)}</p><p class="small">${esc(c.quality_text || "")}</p>` : `<p class="small muted">Based on ${esc(c.basis)}.</p>`}
+      <p class="small muted">Demand above that peak (a main break, fire flow) would drain the tank faster.</p>${assume}`;
+    if (c.state === "empty") body += `<div class="callout" style="border-color:var(--alarm)"><strong>The worst case has reached 0 minutes.</strong> At peak demand the farthest customer could already be at or below ${esc(p?.min_pressure_psi ?? 20)} psi. This is a cautious estimate, not a measurement: read a pressure gauge.</div>`;
   }
-  if (c.needs_operator_reading) body += `<div class="callout"><strong>This is a model, not a measurement.</strong> Read the sight glass and enter it.
+  if (c.ok && c.needs_operator_reading) body += `<div class="callout"><strong>This is a model, not a measurement.</strong> Read the sight glass and enter it.
       <div style="margin-top:.5rem"><button class="btn small" type="button" data-act="focus-level">Enter tank level</button></div></div>`;
   setHTML($("#clocktxt"), body);
   updateTank(c);
@@ -530,7 +623,7 @@ function renderChecks(s) {
   if (!ec || !Array.isArray(ec.checks)) { el.hidden = true; return; }   // a recording or server without the checks
   el.hidden = false;
   const latch = s.trust.latched ? `<p class="small muted" style="margin-top:.5rem">These describe the evidence now. The light can stay amber or red until someone acknowledges it.</p>` : "";
-  setHTML(el, `<h2 id="h-checks">Evidence checks</h2><p class="small muted" style="margin-bottom:.4rem"><b>${esc(ec.text)}.</b> The light at the top is the verdict. These four checks show what sits behind it.</p>${checkRows(ec)}${latch}`);
+  setHTML(el, `<details class="more" data-det="checks"${isOpen("checks", false)}><summary>Evidence checks: ${esc(ec.text)}</summary><p class="small muted" style="margin-bottom:.4rem">The light at the top is the verdict. These four checks show what sits behind it.</p>${checkRows(ec)}${latch}</details>`);
 }
 
 function renderWhy(s) {
@@ -542,13 +635,14 @@ function renderWhy(s) {
       <div class="t">${esc(c.title)}</div><div class="d">${esc(c.text)}</div></div>`).join("");
   const info = (t.info_cards || []).map(c => `<div class="ev"><div class="pts" style="color:var(--muted)" aria-hidden="true">i</div><div class="t">${esc(c.title)}</div><div class="d">${esc(c.text)}</div></div>`).join("");
   const rl = rules.map(r => `<div class="rule">${r.fired ? ICON.no : ICON.yes}<div><b>${esc(r.name)}</b>${r.fired ? `<div class="muted small">${esc(r.explanation)}</div>` : ""}</div></div>`).join("");
-  const open = el.querySelector("details")?.open ? " open" : "";
-  setHTML(el, `<h2 id="h-why">Why this state</h2>${list}${info}
+  const open = el.querySelector("details.rules")?.open ? " open" : "";
+  const n = t.cards.length;
+  setHTML(el, `<details class="more" data-det="why"${isOpen("why", false)}><summary>Why this state: ${n ? n + (n === 1 ? " reason" : " reasons") + ", score " + t.score.toFixed(1) : "nothing disagrees"}</summary>${list}${info}
     <details class="rules"${open}><summary>Screen self-checks: ${firing === 0 ? "all 7 quiet" : firing + " of 7 flagging"}</summary>${rl}
-    <p class="muted small" style="margin-top:.5rem">These checks only compare SCADA with itself. A careful forgery passes all of them, which is why the witnesses exist.</p></details>`);
+    <p class="muted small" style="margin-top:.5rem">These checks only compare SCADA with itself. A careful forgery passes all of them, which is why the witnesses exist.</p></details></details>`);
 }
 
-function renderWitness(s) {
+function renderWitnessLegacy(s) {
   const p = S.profile; if (!p) return;
   const sc = s.scada, el = $("#witness");
   const line = sc ? `<div class="scada-line"><span>Screen updated <b class="num">${dur(sc.age_s)}</b> ago ${sc.stale ? '<span class="tag warn">stale</span>' : ""}</span>
@@ -583,6 +677,65 @@ function renderWitness(s) {
   }
 }
 
+function srcRows(rows, unit, dp) {
+  return (rows || []).map(r => `<div class="src"><span>${esc(r.source)}</span><span class="num"><b>${r.kind === "model" ? "at least " : ""}${r.value == null ? "n/a" : Number(r.value).toFixed(dp)} ${unit}</b></span>
+    <span class="muted">${r.kind === "model" ? "model, not measured" : ago(r.age_s)}</span>${r.note ? `<span class="n">${esc(r.note)}</span>` : ""}</div>`).join("");
+}
+function pumpPickers(p) {
+  for (const id of ["#pumpsel", "#flowsel"]) {            // keep the pump pickers in the entry forms current
+    const sel = $(id); const html = p.pumps.map(pm => `<option value="${esc(pm.id)}">${esc(pm.name || pm.id)}</option>`).join("");
+    if (sel._h !== html) { const v = sel.value; sel.innerHTML = html; sel._h = html; if (v) sel.value = v; }
+  }
+}
+function renderWitness(s) {
+  const q = s.quantities;
+  if (!q) return renderWitnessLegacy(s);                  // a server or recording without the per-quantity evidence
+  const p = S.profile; if (!p) return;
+  const sc = s.scada, el = $("#witness");
+  const line = sc ? `<div class="scada-line"><span>Screen updated <b class="num">${dur(sc.age_s)}</b> ago ${sc.stale ? '<span class="tag warn">stale</span>' : ""}</span>
+      <span>Tank <b>${sc.tank_level_ft?.toFixed(2) ?? "n/a"}</b> ft</span><span>Pressure <b>${sc.pressure_psi?.toFixed(1) ?? "n/a"}</b> psi</span><span>Demand <b>${sc.demand_gpm?.toFixed(0) ?? "n/a"}</b> gpm</span></div>`
+    : `<p class="empty">No SCADA data has arrived.</p>`;
+  const pumps = q.pumps.map(it => {
+    const nd = it.node, op = it.operator, bad = it.status === "conflict";
+    const flow = sc?.pump_flow_gpm?.[it.pump_id];
+    const nodeTxt = !nd ? `<span class="muted">No node on this pump</span>`
+      : `<span class="what">${esc(String(nd.value).toLowerCase())}</span> ${nd.confidence != null ? `<span class="num muted">${pct(nd.confidence)}</span>` : ""}
+         <div class="small muted">${esc(nd.note)}${nd.age_s != null ? " Heard " + ago(nd.age_s) + "." : ""}</div>${nd.mains_ok === false ? '<span class="tag warn">on backup power</span>' : ""}`;
+    const opTxt = op ? `<span class="what">${esc(op.value.toLowerCase())}</span><div class="small muted">${esc(op.who)}, ${ago(op.age_s)}${op.note ? ". " + esc(op.note) : ""}</div>` : '<span class="muted">No one has looked</span>';
+    return `<div class="pump${bad ? " bad" : ""}"><div class="head">${bad ? ICON.no : (it.status === "agree" || it.status === "independent" ? ICON.yes : ICON.open)}<h3>${esc(it.name)}</h3>${chip(it.status)}</div>
+      <p class="small" style="margin-bottom:.45rem">${esc(it.status_text)}</p>
+      <div class="cols">
+        <div><div class="who">Screen says</div><div class="what">${esc(it.screen.value.toLowerCase())}</div><div class="small muted num">${ago(it.screen.age_s)}${flow != null ? ", " + flow.toFixed(0) + " gpm" : ""}</div></div>
+        <div><div class="who">Witness Node${nd ? " " + esc(nd.node_id) : ""}</div>${nodeTxt}</div>
+        <div><div class="who">You saw</div>${opTxt}</div>
+      </div>
+      <div class="small muted" style="margin-top:.4rem"><b>Flow:</b> ${esc(it.flow.note)}</div>${it.limit ? `<p class="limit">${esc(it.limit)}</p>` : ""}</div>`;
+  }).join("");
+  const t = q.tank, pr = q.pressure;
+  const prBest = pr.status === "independent" ? (pr.rows.find(r => r.kind === "operator") || {}).value
+    : pr.status === "screen_only" || pr.status === "conflict" ? (pr.rows.find(r => r.kind === "screen") || {}).value : null;
+  const prVal = prBest != null ? Number(prBest).toFixed(1) + " psi" : pr.model_psi != null ? "about " + Number(pr.model_psi).toFixed(1) + " psi (model)" : "no value";
+  const tank = `<div class="q"><div class="head"><h3>Tank level</h3>${chip(t.status)}<span class="val num">${t.value_ft != null ? t.value_ft.toFixed(1) + " ft" : "no value"}</span></div>
+      <p class="small">${esc(t.status_text)}</p>${srcRows(t.rows, "ft", 2)}<p class="limit">${esc(t.limit)}</p></div>`;
+  const press = `<div class="q"><div class="head"><h3>Pressure</h3>${chip(pr.status)}<span class="val num">${esc(prVal)}</span></div>
+      <p class="small">${esc(pr.status_text)}</p>${srcRows(pr.rows, "psi", 1)}<p class="limit">${esc(pr.limit)}</p></div>`;
+  setHTML(el, `<h2 id="h-wit">Screen against witnesses</h2>
+    <p class="small muted" style="margin-bottom:.6rem">For each thing the screen shows: who reports it, how old that report is, and whether they agree. <b>Estimate</b> means the model worked it out and nobody measured it.</p>
+    ${line}<h3 style="margin:.6rem 0 .2rem">Pump operation</h3>${pumps}${tank}${press}`);
+  pumpPickers(p);
+}
+
+function renderGaps(s) {
+  const el = $("#gaps"), q = s.quantities;
+  if (!q) { el.hidden = true; return; }
+  el.hidden = false;
+  const ic = { conflict: ICON.no, missing: ICON.open, stale: ICON.warn };
+  const word = { conflict: "Conflict", missing: "Missing", stale: "Out of date" };
+  const list = q.gaps.length ? q.gaps.map(g => `<div class="gap">${ic[g.kind] || ICON.open}<div><b>${esc(word[g.kind] || g.kind)}: ${esc(g.quantity)}.</b> ${esc(g.text)}</div></div>`).join("")
+    : `<p class="empty">Nothing is missing and nothing conflicts.</p>`;
+  setHTML(el, `<h2 id="h-gaps">Missing or conflicting information</h2>${list}`);
+}
+
 const REASON = { bad_signature: "wrong signature", replay: "repeated or old message", stale_timestamp: "clock too far off", unknown_node: "unknown node", malformed: "malformed" };
 function describe(r) {
   const c = r.content || {};
@@ -612,12 +765,12 @@ function renderTimeline(s) {
   const items = s.timeline.filter(r => r.type !== "digest").slice(0, 14);
   const open = el.querySelector("[data-verify-out]")?.innerHTML || "";
   const list = items.length ? `<ul class="log">${items.map(r => `<li><time>${esc(r.time)}</time><div>${esc(describe(r))}<div class="src">${esc(r.source)}</div></div></li>`).join("")}</ul>` : `<p class="empty">No events yet.</p>`;
-  setHTML(el, `<h2 id="h-log">What happened</h2>${list}
+  setHTML(el, `<details class="more" data-det="timeline"${isOpen("timeline", false)}><summary>What happened: ${s.log.count} saved records</summary>${list}
     <div class="row" style="margin-top:.9rem;align-items:center">
       <button class="btn small quiet" type="button" data-act="verify" data-focus="verify">Check the log is untampered</button>
       <button class="btn small quiet" type="button" data-act="export" data-focus="export">Download the evidence log</button></div>
     <p class="small muted" style="margin-top:.5rem">${s.log.count} records${s.source === "drill" ? " in the drill log" : ""}. Latest fingerprint: <span class="hash">${esc((s.log.head_hash || "").slice(0, 16))}</span></p>
-    <p class="small" data-verify-out role="status">${open}</p>`);
+    <p class="small" data-verify-out role="status">${open}</p></details>`);
 }
 
 function renderPlaybook(s) {
@@ -634,6 +787,7 @@ function renderPlaybook(s) {
         <div class="meta">${esc(x.owner)}${x.status === "done" ? ", done by " + esc(x.done_by) : x.target ? ", " + esc(x.target) : ""}${x.status === "overdue" ? " (overdue)" : ""}</div></div>
         ${x.status === "done" ? "" : `<button class="btn small" type="button" data-act="pb-step" data-id="${esc(x.id)}" data-focus="step-${esc(x.id)}">Mark done</button>`}</div>`).join("")}</div>`).join("");
   setHTML(el, `<h2 id="h-pb">Lockout playbook</h2><p class="small muted" style="margin-bottom:.8rem">Started ${Math.floor(pb.elapsed_min)} min ago ${pb.started_by === "automatic" ? "automatically" : "by " + esc(pb.started_by)}. Targets follow the countdown clock.</p>
+    ${pb.start_note ? `<div class="callout" style="margin-bottom:.8rem">${esc(pb.start_note)}</div>` : ""}
     ${phases}<p class="small muted">${esc(pb.disclaimer)}</p>`);
 }
 
@@ -703,7 +857,9 @@ function renderEmergency(s) {
   setHTML(el, `<h2 id="h-em">Emergency view${s.source === "drill" ? " (simulated drill)" : ""}</h2>
     <p class="lead muted">This page does not need the internet. It shows what HydroWitness has saved and heard on your own equipment, and what to do next. As of ${esc(s.now_text)}.</p>
     ${lostNote}
-    <div class="em-state"><b>${esc(headline)}</b><span>Time left, worst case: <b class="num">${c.ok ? esc(c.worst_text) : "unknown"}</b></span></div>
+    <div class="em-state"><b>${esc(headline)}</b><span>Time left, worst case: <b class="num">${esc(c.worst_text || "estimate unavailable")}</b></span></div>
+    ${s.next_check && s.next_check.primary ? `<div class="em-note"><b>Next useful check: ${esc(s.next_check.primary.title)}.</b> ${esc(s.next_check.primary.what)} ${esc(s.next_check.primary.why)}</div>` : ""}
+    ${s.quantities && s.quantities.gaps.length ? `<h3>Missing or conflicting information</h3><ul class="em-list">${s.quantities.gaps.map(g => `<li><b>${esc(g.quantity)}:</b> ${esc(g.text)}</li>`).join("")}</ul>` : ""}
 
     <h3>Latest readings</h3>
     <div class="em-rows"><div><span class="k">Screen (SCADA)</span><span>${scadaTxt}</span></div>${nodeRows}${mine}</div>
@@ -783,7 +939,7 @@ function renderDrill(s) {
 }
 
 function render(s) {
-  renderChrome(s); renderVerdict(s); renderEmergency(s); renderClock(s); renderChecks(s); renderWhy(s); renderWitness(s); renderTimeline(s); renderPlaybook(s); renderDrill(s);
+  renderChrome(s); renderVerdict(s); renderEmergency(s); renderNext(s); renderClock(s); renderWitness(s); renderGaps(s); renderChecks(s); renderWhy(s); renderTimeline(s); renderPlaybook(s); renderDrill(s);
 }
 
 /* ---------------------------------------------------------------------------------------- loop */
@@ -811,6 +967,13 @@ document.addEventListener("click", ev => {
   else if (a === "pb-start") act("Playbook started.", () => api("/api/playbook/start", { method: "POST", body: { operator: opname() } }));
   else if (a === "pb-step") act("Step marked done.", () => api("/api/playbook/step/" + encodeURIComponent(b.dataset.id), { method: "POST", body: { operator: opname() } }));
   else if (a === "focus-level") { $("#lvl").scrollIntoView({ block: "center" }); $("#lvl").focus(); }
+  else if (a === "enter-reading") {                        // jump to the entry box for the reading the next check asks for
+    const kind = b.dataset.kind, pump = b.dataset.pump;
+    const box = { tank_level_ft: "#lvl", gauge_psi: "#psi", pump_running: "#pumpsel", flow_confirmed: "#flowsel" }[kind] || "#addr";
+    if (pump && kind === "pump_running") $("#pumpsel").value = pump;
+    if (pump && kind === "flow_confirmed") $("#flowsel").value = pump;
+    $(box).scrollIntoView({ block: "center" }); $(box).focus();
+  }
   else if (a === "drill-start") act("Drill started.", () => api("/api/drill/start", { method: "POST", body: { scenario: b.dataset.id, operator_script: !!$("#opscript")?.checked, speed: 5 } }));
   else if (a === "drill-stop") act("Drill ended.", () => api("/api/drill/stop", { method: "POST" }));
   else if (a === "drill-pause") act(S.s.drill.running ? "Drill paused." : "Drill resumed.", () => api("/api/drill/control", { method: "POST", body: { running: !S.s.drill.running } }));

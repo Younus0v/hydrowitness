@@ -16,13 +16,14 @@ import json
 import re
 import sys
 from pathlib import Path
-from typing import Any
+from typing import Any, Optional
 
 from fastapi.encoders import jsonable_encoder
 
 from ..api import AppState, VERSION
 from ..demo import DEMO_SECRETS, demo_profile
 from .drills import DrillRunner, SCENARIOS
+from .truth import TRUTH_HORIZON_H, minutes_to_line
 
 ROOT = Path(__file__).resolve().parent.parent.parent
 OUT = ROOT / "site" / "demo"
@@ -46,7 +47,8 @@ NOTICE = (
 
 # Controls a recording cannot honour are hidden, so nothing on the page looks clickable and then refuses.
 STYLE = ("<style id=\"webdemo-style\">#enter,#drill .row + h3,#drill .row + h3 + .row,#drill .attack-grid,"
-         "[data-act=\"pb-start\"],[data-act=\"pb-step\"],[data-act=\"ack\"]{display:none !important}</style>")
+         "[data-act=\"pb-start\"],[data-act=\"pb-step\"],[data-act=\"ack\"],[data-act=\"enter-reading\"],"
+         "[data-act=\"focus-level\"]{display:none !important}</style>")
 
 SECOND_WITNESS_OLD = "Enter what you see in the panel above to add one."
 SECOND_WITNESS_NEW = "Start this drill again with the scripted operator ticked to add one."
@@ -60,6 +62,56 @@ def _frame(st: AppState) -> dict[str, Any]:
     return f
 
 
+# ---- what really happened in the simulation ------------------------------------------------------------------
+# The engines never see any of this. It is recorded next to each frame so the web demo can set what the screen claimed
+# and what the witnesses reported against the plant's own state. A real plant gives no such column.
+TRUTH_EVERY = 6                      # recompute the look-ahead every 6th frame (30 simulated seconds)
+MODE_TEXT = {
+    "frozen": "The screen is frozen: the same values repeat with new timestamps.",
+    "dark": "The screen is dark: remote access was cut, so nothing new arrives.",
+    "replay": "The screen is replaying data recorded 30 minutes earlier.",
+    "spoof": "The screen is forged: its values are made up and look normal.",
+}
+
+
+def truth(d: DrillRunner, scada: Optional[dict], look_ahead: Optional[float]) -> dict[str, Any]:
+    s, p = d.sys, d.profile
+    pumps: dict[str, dict] = {}
+    for pump in p.pumps:
+        f = s.forced[pump.id]
+        why = ("forced off" if f is False else "forced on" if f is True else
+               "no power" if not s.power_ok else "the plant's own control logic")
+        effective = f if f is not None else (False if not s.power_ok else bool(s.running[pump.id]))   # what it is doing from the next step on
+        pumps[pump.id] = {"running": bool(effective), "why": why}
+    wrong: list[str] = []
+    if scada is not None:
+        for pid, claim in (scada.get("pump_status") or {}).items():
+            if claim is not None and pid in pumps and bool(claim) != pumps[pid]["running"]:
+                wrong.append(f"{pid} is {'running' if pumps[pid]['running'] else 'stopped'}, but the screen says {'running' if claim else 'stopped'}.")
+        lv = scada.get("tank_level_ft")
+        if lv is not None and abs(lv - s.level_ft) > p.level_tolerance_ft:
+            wrong.append(f"The tank is at {s.level_ft:.1f} ft, but the screen says {lv:.1f} ft.")
+    if d.view.mode in MODE_TEXT:
+        wrong.append(MODE_TEXT[d.view.mode])
+    if not s.power_ok:
+        wrong.append("Mains power has failed, so the pumps have stopped.")
+    if s.demand_scale < 0.99:
+        wrong.append("A valve is closed out of sight. Only part of the water reaches customers, and nothing on the screen shows it.")
+    valve = s.demand_scale < 0.99
+    return {
+        "mode": d.view.mode, "pumps": pumps, "level_ft": round(s.level_ft, 2),
+        # The simulation closes a valve by cutting the demand that gets through; it does not work out the pressure
+        # beyond the valve. So with a valve closed there is no honest number, and none is given.
+        "psi_critical": None if valve else round(s.true_critical_psi(), 1), "psi_line": p.min_pressure_psi,
+        "pressure_modelled": not valve, "supply_pct": round(s.demand_scale * 100),
+        "power_ok": s.power_ok, "valve_closed": valve, "demand_gpm": round(s.demand_gpm),
+        "minutes_to_line": None if valve else look_ahead, "horizon_h": TRUTH_HORIZON_H,
+        "events": [{"after_attack_s": x["after_attack_s"], "label": x["label"]} for x in d.timeline
+                   if x["after_attack_s"] >= 0],
+        "screen_wrong": wrong,
+    }
+
+
 def new_state() -> AppState:
     return AppState(demo_profile(), dict(DEMO_SECRETS), demo_config=True)
 
@@ -67,10 +119,16 @@ def new_state() -> AppState:
 def record(scenario_id: str, operator_script: bool, *, seed: int = SEED, horizon_s: float = HORIZON_S) -> dict[str, Any]:
     st = new_state()
     st.drill = DrillRunner(scenario_id, seed=seed, operator_script=operator_script)
-    frames = [_frame(st)]
-    for _ in range(int(horizon_s // DT)):
-        st.drill.advance(DT)
-        frames.append(_frame(st))
+    frames: list[dict[str, Any]] = []
+    ahead: Optional[float] = None
+    for i in range(int(horizon_s // DT) + 1):
+        if i:
+            st.drill.advance(DT)
+        f = _frame(st)
+        if i % TRUTH_EVERY == 0 and st.drill.sys.demand_scale >= 0.99:
+            ahead = minutes_to_line(st.drill.sys, st.drill.profile.min_pressure_psi)
+        f["truth"] = truth(st.drill, f.get("scada"), ahead)
+        frames.append(f)
     return {"v": 1, "dt": DT, "scenario": scenario_id, "operator_script": operator_script, "frames": frames}
 
 
@@ -94,7 +152,7 @@ def app_html() -> str:
         "dashboard markup changed: update web_recordings.app_html"
     assert src.count(SECOND_WITNESS_OLD) == 1, "dashboard wording changed: update web_recordings"
     src = src.replace(SECOND_WITNESS_OLD, SECOND_WITNESS_NEW)
-    src = src.replace("<head>", '<head>\n<script src="shim.js"></script>\n' + STYLE, 1)
+    src = src.replace("<head>", '<head>\n<script src="shim.js"></script>\n<script src="compare.js" defer></script>\n' + STYLE, 1)
     return re.sub(r"(<body[^>]*>)", lambda m: m.group(1) + "\n" + NOTICE, src, count=1)
 
 

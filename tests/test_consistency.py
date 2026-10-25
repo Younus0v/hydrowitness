@@ -96,6 +96,42 @@ def test_all_pumps_stopped_while_the_tank_rises_fires(profile):
     assert "pump_flow_tank" in f and "tank level rose" in f["pump_flow_tank"].explanation
 
 
+def test_a_normal_pump_stop_on_a_small_tank_is_not_a_tank_that_rises_while_stopped(profile):
+    """Found by the long evaluation runs: at the moment the last pump stops, the previous 5 minutes still hold the rise from
+    when it was running. That is not "all pumps shown stopped but the tank rose"."""
+    chk = ConsistencyChecker(profile)
+    end = feed(chk, T0, 400, status={"P1": True, "P2": False}, flows={"P1": 250.0, "P2": 0.0},
+               level=lambda s: 22.0 + 0.0005 * s)             # +0.03 ft/min, a small tank filling
+    for k in range(60):                                       # the pump stops, the level stops rising, and for the next 5 minutes ...
+        end = feed(chk, end, 5, status={"P1": False, "P2": False}, flows={"P1": 0.0, "P2": 0.0}, level=lambda s: 22.2)
+        assert "pump_flow_tank" not in fired(chk, end - 5.0), f"fired {5 * (k + 1)} s after a normal stop"
+
+
+def test_the_rising_tank_check_still_catches_a_screen_that_shows_stopped_for_minutes_while_the_tank_fills(profile):
+    chk = ConsistencyChecker(profile)
+    end = feed(chk, T0, 400, status={"P1": True, "P2": False}, flows={"P1": 250.0, "P2": 0.0}, level=lambda s: 22.0 + 0.0005 * s)
+    end = feed(chk, end, 330, status={"P1": False, "P2": False}, flows={"P1": 0.0, "P2": 0.0}, level=lambda s: 22.2 + 0.004 * s)
+    assert "pump_flow_tank" in fired(chk, end)
+
+
+def test_a_normal_pump_stop_on_a_small_tank_is_not_a_tank_that_rises_while_stopped(profile):
+    """Found by the long evaluation runs: at the moment the last pump stops, the previous 5 minutes still hold the rise from
+    when it was running. That is not "all pumps shown stopped but the tank rose"."""
+    chk = ConsistencyChecker(profile)
+    end = feed(chk, T0, 400, status={"P1": True, "P2": False}, flows={"P1": 250.0, "P2": 0.0},
+               level=lambda s: 22.0 + 0.0005 * s)             # +0.03 ft/min, a small tank filling
+    for k in range(60):                                       # the pump stops, the level stops rising, and for the next 5 minutes ...
+        end = feed(chk, end, 5, status={"P1": False, "P2": False}, flows={"P1": 0.0, "P2": 0.0}, level=lambda s: 22.2)
+        assert "pump_flow_tank" not in fired(chk, end - 5.0), f"fired {5 * (k + 1)} s after a normal stop"
+
+
+def test_the_rising_tank_check_still_catches_a_screen_that_shows_stopped_for_minutes_while_the_tank_fills(profile):
+    chk = ConsistencyChecker(profile)
+    end = feed(chk, T0, 400, status={"P1": True, "P2": False}, flows={"P1": 250.0, "P2": 0.0}, level=lambda s: 22.0 + 0.0005 * s)
+    end = feed(chk, end, 330, status={"P1": False, "P2": False}, flows={"P1": 0.0, "P2": 0.0}, level=lambda s: 22.2 + 0.004 * s)
+    assert "pump_flow_tank" in fired(chk, end)
+
+
 # ------------------------------------------------------------------ 3 static head
 def test_pressure_that_ignores_the_tank_level_fires_after_a_minute(profile):
     chk = ConsistencyChecker(profile)

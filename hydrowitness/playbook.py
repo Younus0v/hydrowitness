@@ -14,6 +14,7 @@ from dataclasses import dataclass
 from typing import Optional
 
 PHASES = ["Confirm", "Contain", "Prepare", "Recover"]
+DEFAULT_START_MIN = 480.0     # planning default, used ONLY when there is no countdown estimate at all (never for 0)
 DISCLAIMER = ("Template only. Follow your utility's own emergency response plan and your state's rules. "
               "This checklist gives no regulatory advice.")
 
@@ -57,15 +58,25 @@ class Playbook:
         self.active = False
         self.started_t: Optional[float] = None
         self.start_worst_min: Optional[float] = None
+        self.start_basis = "countdown"        # countdown | empty | not_falling | unavailable
         self.started_by = ""
         self.steps = default_steps()
 
-    def start(self, now: float, start_worst_min: Optional[float], by: str = "automatic") -> bool:
+    def start(self, now: float, start_worst_min: Optional[float], by: str = "automatic",
+              basis: Optional[str] = None) -> bool:
+        """start_worst_min is the countdown when the playbook starts. A countdown of 0 stays 0: the Contain steps
+        are then due now, not in 48 minutes. Only a missing countdown (None) uses the 8 hour planning default, and
+        the status says so. `basis` says why it is missing: "unavailable" (no tank reading) or "not_falling"."""
         if self.active:
             return False
         self.reset()
         self.active, self.started_t, self.started_by = True, now, by
-        self.start_worst_min = start_worst_min if start_worst_min else 480.0
+        if start_worst_min is None:
+            self.start_worst_min = DEFAULT_START_MIN
+            self.start_basis = basis or "unavailable"
+        else:
+            self.start_worst_min = max(0.0, float(start_worst_min))
+            self.start_basis = "empty" if self.start_worst_min <= 0 else "countdown"
         return True
 
     def complete(self, step_id: str, operator: str, now: float) -> Optional[Step]:
@@ -81,9 +92,14 @@ class Playbook:
     def status(self, now: float, worst_now_min: Optional[float]) -> dict:
         if not self.active:
             return {"active": False, "disclaimer": DISCLAIMER, "phases": []}
-        start = self.start_worst_min or 480.0
+        start = DEFAULT_START_MIN if self.start_worst_min is None else self.start_worst_min
         elapsed_min = (now - self.started_t) / 60.0
-        share_left = None if worst_now_min is None else max(0.0, min(1.0, worst_now_min / start))
+        if worst_now_min is None:
+            share_left = None
+        elif start <= 0:
+            share_left = 0.0                      # the clock was already at zero: everything is due
+        else:
+            share_left = max(0.0, min(1.0, worst_now_min / start))
         phases = []
         for ph in PHASES:
             steps = []
@@ -102,11 +118,25 @@ class Playbook:
                     "id": s.id, "text": s.text, "owner": s.owner, "status": st,
                     "done_by": s.done_by, "done_t": s.done_t,
                     "target": (f"within {s.target_min:.0f} min" if s.target_min is not None else
-                               f"within {s.target_share * start:.0f} min" if s.target_share is not None else
-                               f"when {int(s.trigger_share * 100)}% of the clock is left" if s.trigger_share is not None else ""),
+                               ("now" if start <= 0 else f"within {s.target_share * start:.0f} min") if s.target_share is not None else
+                               ("now" if start <= 0 else f"when {int(s.trigger_share * 100)}% of the clock is left")
+                               if s.trigger_share is not None else ""),
                 })
             phases.append({"name": ph, "steps": steps, "done": all(x["status"] == "done" for x in steps)})
         current = next((p["name"] for p in phases if not p["done"]), "Recover")
         return {"active": True, "started_t": self.started_t, "started_by": self.started_by,
-                "start_worst_min": start, "elapsed_min": round(elapsed_min, 1), "current_phase": current,
+                "start_worst_min": start, "start_basis": self.start_basis, "start_note": self._start_note(),
+                "elapsed_min": round(elapsed_min, 1), "current_phase": current,
                 "phases": phases, "disclaimer": DISCLAIMER}
+
+    def _start_note(self) -> str:
+        if self.start_basis == "empty":
+            return ("The countdown was already at 0 minutes when this started, so the Contain and Prepare steps "
+                    "are due now.")
+        if self.start_basis == "unavailable":
+            return ("There was no countdown estimate when this started, so the Contain and Prepare timings use a "
+                    f"planning default of {DEFAULT_START_MIN / 60:.0f} hours. Enter a tank reading to get a real countdown.")
+        if self.start_basis == "not_falling":
+            return ("The countdown was not falling when this started (confirmed inflow covers peak demand), so the "
+                    f"Contain and Prepare timings use a planning default of {DEFAULT_START_MIN / 60:.0f} hours.")
+        return ""

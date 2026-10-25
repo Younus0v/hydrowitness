@@ -59,12 +59,44 @@ class ClockResult:
     uncertainty_ft: float = 0.0
     needs_operator_reading: bool = False
     notes: list[str] = field(default_factory=list)
+    # How far the estimate can be leaned on, in plain terms (added so the screen never has to guess):
+    state: str = "unavailable"            # unavailable | empty | falling | not_falling
+    horizon_h: float = C.EXPECTED_HORIZON_H
+    level_source: Optional[str] = None
+    level_source_text: str = ""
+    quality: str = "none"                 # none | fresh | aging | old | model_only
+    quality_text: str = ""
+    uncertainty_cost_min: Optional[float] = None   # minutes of worst case given up because the reading is not fresh
+    worst_level_now_ft: Optional[float] = None     # tank level now in the worst case (reading minus drawdown minus uncertainty)
+    assumptions: dict = field(default_factory=dict)
+    assumption_lines: list[str] = field(default_factory=list)
 
     def as_dict(self) -> dict:
         return self.__dict__.copy()
 
 
 # ------------------------------------------------------------------ small helpers
+
+
+def format_age(sec: Optional[float]) -> str:
+    """'45 s', '12 min', '2 h 05 min'. The same wording the dashboard uses for ages."""
+    if sec is None:
+        return "unknown age"
+    sec = max(0, round(sec))
+    if sec < 90:
+        return f"{sec} s"
+    m = round(sec / 60)
+    if m < 90:
+        return f"{m} min"
+    return f"{m // 60} h {m % 60:02d} min"
+
+
+LEVEL_SOURCE_TEXT = {
+    "scada": "the SCADA tank level (it agrees with the witnesses)",
+    "operator": "an operator's own tank reading",
+    "scada_last_trusted": "the last SCADA level that could be trusted, rolled forward by the model",
+    "scada_untrusted": "a SCADA level that cannot be trusted, rolled forward by the model",
+}
 
 
 def l_min_ft(profile: SiteProfile) -> float:
@@ -159,7 +191,11 @@ def compute_clock(profile: SiteProfile, now: float, level: Optional[LevelReading
     lmin = l_min_ft(profile)
     if level is None:
         return ClockResult(mode="storage", ok=False, l_min_ft=lmin, needs_operator_reading=True,
-                           basis="No tank level available. Read the tank sight glass and enter it.")
+                           basis="No tank level available. Read the tank sight glass and enter it.",
+                           state="unavailable", quality="none",
+                           quality_text="There is no tank reading to build an estimate from, so there is no estimate.",
+                           assumptions={"worst_demand_gpm": profile.peak_demand_gpm, "horizon_h": C.EXPECTED_HORIZON_H},
+                           assumption_lines=["No estimate is shown because no tank level is available. Nothing is guessed."])
 
     age = max(0.0, now - level.t)
     unc = level_uncertainty_ft(age, level.source)
@@ -185,6 +221,9 @@ def compute_clock(profile: SiteProfile, now: float, level: Optional[LevelReading
         worst = 0.0
     else:
         worst = usable_w / net_w
+    # What the reading's age costs: the same worst case if the reading were exactly right.
+    usable_exact = max(0.0, (level.value_ft - drop_w_ft - lmin) * gpf)
+    unc_cost = None if (worst is None or net_w <= 0) else max(0.0, usable_exact / net_w - worst)
 
     # Expected case: typical hourly demand rolled forward from the reading, then integrated on, with the
     # headloss margin scaled to each hour's demand.
@@ -206,11 +245,51 @@ def compute_clock(profile: SiteProfile, now: float, level: Optional[LevelReading
         notes.append("No inflow credited: pumps assumed off until a witness shows water moving.")
     notes.append(f"Worst case assumes demand never exceeds the configured peak of {profile.peak_demand_gpm:.0f} gpm. "
                  "A main break or fire flow would drain the tank faster: re-read the tank to re-anchor this clock.")
+
+    model_only = level.source in ("scada_last_trusted", "scada_untrusted")
+    if model_only:
+        quality = "model_only"
+    elif age <= C.CLOCK_FRESH_S:
+        quality = "fresh"
+    elif age <= C.CLOCK_OLD_S:
+        quality = "aging"
+    else:
+        quality = "old"
+    cost_txt = (f" (about {format_minutes(unc_cost)} of the worst case)" if unc_cost is not None and unc_cost >= 1 else "")
+    quality_text = {
+        "fresh": f"Fresh: the tank reading is {format_age(age)} old.",
+        "aging": f"Aging: the tank reading is {format_age(age)} old. The worst case already subtracts {unc:.1f} ft for that age{cost_txt}.",
+        "old": f"Old: the tank reading is {format_age(age)} old. The worst case already subtracts {unc:.1f} ft for that age{cost_txt}. Read the tank again.",
+        "model_only": f"Model only: there is no current measurement. The level comes from {format_age(age)} ago and is rolled forward by the model; "
+                      f"the worst case subtracts {unc:.1f} ft for that{cost_txt}.",
+    }[quality]
+    typ_now = typical_demand(profile, now)
+    if credits:
+        inflow_line = ("Inflow credited: " + ", ".join(f"{c.pump_id} {c.gpm:.0f} gpm ({c.reason})" for c in credits)
+                       + ". A pump that only sounds like it is running earns no credit.")
+    else:
+        inflow_line = "Inflow: none credited. A pump counts only after a person confirms water is moving."
+    lines = [
+        f"Worst case: demand stays at the configured peak of {profile.peak_demand_gpm:.0f} gpm. {inflow_line}",
+        f"Expected case: typical demand for each hour of the day (now about {typ_now:.0f} gpm), looking up to {C.EXPECTED_HORIZON_H} h ahead.",
+        f"Level: {LEVEL_SOURCE_TEXT.get(level.source, level.source)}, {format_age(age)} old. "
+        f"The worst case subtracts {unc:.1f} ft for that age" + (" and the model's guesswork." if model_only else "."),
+        f"Friction: a {profile.headloss_margin_ft:.1f} ft headloss margin at peak demand (scaled down at lower demand in the expected case); "
+        f"the line is {profile.min_pressure_psi:.0f} psi at the farthest customer.",
+    ]
+    state = "not_falling" if worst is None else ("empty" if worst <= 0 else "falling")
     return ClockResult(
         mode="storage", ok=True, basis=f"{basis}, {int(age)} s old", level_ft=level.value_ft,
         level_age_s=age, l_min_ft=lmin, usable_gal=usable_w, worst_min=worst, expected_min=expected,
         credited_gpm=q_in, credited_pumps=[c.pump_id for c in credits], uncertainty_ft=unc,
-        needs_operator_reading=level.source in ("scada_last_trusted", "scada_untrusted"), notes=notes,
+        needs_operator_reading=model_only, notes=notes,
+        state=state, level_source=level.source, level_source_text=LEVEL_SOURCE_TEXT.get(level.source, level.source),
+        quality=quality, quality_text=quality_text, uncertainty_cost_min=unc_cost, worst_level_now_ft=level_w,
+        assumptions={"worst_demand_gpm": profile.peak_demand_gpm, "expected_demand_now_gpm": typ_now,
+                     "inflow_credited_gpm": q_in, "horizon_h": C.EXPECTED_HORIZON_H,
+                     "headloss_margin_ft": profile.headloss_margin_ft, "min_pressure_psi": profile.min_pressure_psi,
+                     "level_uncertainty_ft": unc},
+        assumption_lines=lines,
     )
 
 
@@ -249,8 +328,9 @@ def _compute_direct(profile: SiteProfile, now: float, credits: list[CreditedFlow
     """No storage: the clock comes from precomputed WNTR response curves."""
     curves = sorted(profile.response_curves, key=lambda c: c.demand_gpm)
     if not curves:
-        return ClockResult(mode="direct", ok=False,
+        return ClockResult(mode="direct", ok=False, state="unavailable",
                            basis="Direct-pumping site: response curves are not loaded for this site.",
+                           assumption_lines=["No estimate is shown because this site has no response curves."],
                            notes=["Direct-pumping mode needs response curves computed for this site with WNTR/EPANET. "
                                   "That tool is not part of this build, so direct-pumping sites are not supported yet."])
     worst_curve = next((c for c in curves if c.demand_gpm >= profile.peak_demand_gpm), curves[-1])
@@ -264,6 +344,12 @@ def _compute_direct(profile: SiteProfile, now: float, credits: list[CreditedFlow
         mode="direct", ok=True, worst_min=worst, expected_min=expected,
         basis=f"precomputed response curves (peak {worst_curve.demand_gpm:.0f} gpm / typical {exp_curve.demand_gpm:.0f} gpm)",
         notes=["Direct-pumping systems have minutes, not hours. Confirm on site."],
+        state="not_falling" if worst is None else ("empty" if worst <= 0 else "falling"), quality="model_only",
+        quality_text="Model only: the estimate comes from precomputed response curves, not from a live measurement.",
+        assumptions={"worst_demand_gpm": worst_curve.demand_gpm, "expected_demand_now_gpm": exp_curve.demand_gpm,
+                     "horizon_h": C.EXPECTED_HORIZON_H, "min_pressure_psi": profile.min_pressure_psi},
+        assumption_lines=[f"Worst case uses the response curve for {worst_curve.demand_gpm:.0f} gpm; expected uses {exp_curve.demand_gpm:.0f} gpm. "
+                          "Both assume every pump is lost."],
     )
 
 
@@ -272,3 +358,14 @@ def format_minutes(m: Optional[float]) -> str:
         return "stable"
     h, mm = divmod(int(round(m)), 60)
     return f"{h} h {mm:02d} min" if h else f"{mm} min"
+
+
+def clock_text(r: ClockResult, which: str) -> str:
+    """The one wording for the countdown, used by the dashboard, the alerts and the playbook, so they never differ.
+    which is "worst" or "expected". Zero is "0 min", never blank or "stable"; no estimate says so."""
+    if not r.ok:
+        return "estimate unavailable"
+    m = r.worst_min if which == "worst" else r.expected_min
+    if m is None:
+        return "not falling" if which == "worst" else f"not falling within {int(r.horizon_h)} h"
+    return format_minutes(max(0.0, m))

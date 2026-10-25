@@ -8,7 +8,7 @@ The node only listens. There is no connection to any pump, valve, PLC or control
 | part | notes |
 |---|---|
 | ESP32 DevKit V1, 30-pin | the 38-pin boards have the same GPIO numbers; check the silkscreen, not the pin position |
-| GY-521 (MPU6050) | accelerometer, I2C. Leave AD0 unconnected (address 0x68) |
+| GY-521 (MPU6050) | accelerometer, I2C. Leave AD0 unconnected (address 0x68). If the node prints `WHO_AM_I is 0x72`, the module carries a different chip: see "Stage 7 progress" in `docs/HARDWARE_STAGE.md` |
 | INMP441 | I2S MEMS microphone breakout |
 | 6 mm tactile button | one |
 | LEDs: green, amber, red + three 330 ohm resistors | |
