@@ -1,0 +1,6 @@
+S,phase=0,state=U,conf=200,acc=U,mic=U,verdict_acc=0,verdict_mic=0,offline=1,mains=1,acc_rate=3176.9,acc_overflows=636,i2c_errs=40,mic_errs=0,epochs=27,sent=0,dropped=0,rejected=0,heap=69696,rssi=0,time=0
+W,accelerometer sample rate is 3176.9 Hz, not 1000: the mains hum bands may sit slightly off (see README)
+S,phase=0,state=U,conf=200,acc=U,mic=U,verdict_acc=0,verdict_mic=0,offline=1,mains=1,acc_rate=3198.0,acc_overflows=1077,i2c_errs=70,mic_errs=0,epochs=46,sent=0,dropped=0,rejected=0,heap=68100,rssi=-59,time=1
+W,accelerometer sample rate is 3198.0 Hz, not 1000: the mains hum bands may sit slightly off (see README)
+S,phase=0,state=U,conf=200,acc=U,mic=U,verdict_acc=0,verdict_mic=0,offline=1,mains=1,acc_rate=3001.0,acc_overflows=2185,i2c_errs=289,mic_errs=0,epochs=94,sent=0,dropped=4,rejected=0,heap=67944,rssi=-59,time=1
+W,accelerometer sample rate is 3001.0 Hz, not 1000: the mains hum bands may sit slightly off (see README)

@@ -16,3 +16,5 @@ firmware/witness_node/secrets.h
 Thumbs.db
 .vscode/
 .idea/
+
+!measurements/**/serial.log
