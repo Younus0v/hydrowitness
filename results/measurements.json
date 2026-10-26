@@ -46,13 +46,75 @@
     }
    },
    "counts_as_pump_evidence": false
+  },
+  {
+   "id": "2026-10-26-bench-status-NB",
+   "purpose": "bench",
+   "date": "2026-10-26",
+   "board": "ESP32-S development board, 38 pins (as described by the hardware teammate), on a breadboard",
+   "pump": "",
+   "mounting": "",
+   "source": "three S, status lines pasted by the hardware teammate through the team lead (with the W, lines the firmware printed after each); one 9 s phone video of the board (not stored here) and one photo of the accelerometer module",
+   "problems": [],
+   "observations": {
+    "boots": [],
+    "warnings": [
+     "accelerometer sample rate is 3176.9 Hz, not 1000: the mains hum bands may sit slightly off (see README)",
+     "accelerometer sample rate is 3198.0 Hz, not 1000: the mains hum bands may sit slightly off (see README)",
+     "accelerometer sample rate is 3001.0 Hz, not 1000: the mains hum bands may sit slightly off (see README)"
+    ],
+    "fatal": [],
+    "status_lines": 3,
+    "last_status": {
+     "phase": "0",
+     "state": "U",
+     "conf": "200",
+     "acc": "U",
+     "mic": "U",
+     "verdict_acc": "0",
+     "verdict_mic": "0",
+     "offline": "1",
+     "mains": "1",
+     "acc_rate": "3001.0",
+     "acc_overflows": "2185",
+     "i2c_errs": "289",
+     "mic_errs": "0",
+     "epochs": "94",
+     "sent": "0",
+     "dropped": "4",
+     "rejected": "0",
+     "heap": "67944",
+     "rssi": "-59",
+     "time": "1"
+    }
+   },
+   "windows": {
+    "labelled": 0,
+    "unlabelled": 0,
+    "damaged": 0,
+    "channels": {
+     "acc": {
+      "running_windows": 0,
+      "stopped_windows": 0,
+      "running_runs": 0,
+      "stopped_runs": 0
+     },
+     "mic": {
+      "running_windows": 0,
+      "stopped_windows": 0,
+      "running_runs": 0,
+      "stopped_runs": 0
+     }
+    }
+   },
+   "counts_as_pump_evidence": false
   }
  ],
  "counted": {
-  "bench": 1,
+  "bench": 2,
   "development": 0,
   "evaluation": 0
  },
  "heldout": null,
- "headline": "No measurements from a real pump have been supplied. Every number in results/ comes from a simulated plant and simulated Witness Nodes. The firmware has booted on a real board (1 bench log, no pump); that is the only real-hardware evidence so far."
+ "headline": "No measurements from a real pump have been supplied. Every number in results/ comes from a simulated plant and simulated Witness Nodes. The firmware has booted on a real board (2 bench logs, no pump); that is the only real-hardware evidence so far."
 }

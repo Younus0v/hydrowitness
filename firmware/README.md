@@ -13,14 +13,17 @@ server. It never controls anything. Raw audio never leaves the device; only a ve
   synthetic pump signals).
 * `witness_node.ino` is the hardware glue. It type-checks, with all warnings on, against stand-ins for the
   ESP32 libraries for every `config.h` combination (`tests/test_firmware_node.py`). It has also been **compiled
-  for the ESP32 with the real toolchain** (esp32 core 3.3.12, board "ESP32 Dev Module", all warnings on, no
+  for the ESP32 with the real toolchain** (esp32 core 3.3.12, last repeated on 26 Oct 2026 for the accelerometer and calibration-memory changes, board "ESP32 Dev Module", all warnings on, no
   warnings from our files; also with mains sense, the right mic slot, TLS and 50 Hz switched on). Real
   compiles have found two bugs so far. A constant named `EPS` clashed with a macro in the ESP32's own headers (now
   `DSP_EPS`). And `fatal()` was marked `[[noreturn]]`, which the Arduino IDE rejects, because the IDE writes its own
   declaration of every sketch function without attributes; a teammate's Arduino IDE found that one, because
   the first compile had skipped the IDE's prototype step. Both are fixed, a test guards the second, and the compile
-  has been repeated with that step switched on. **It has booted on a real ESP32-S board** (the boot log is in `measurements/`), but its
-  sensor readings, Wi-Fi and flash behaviour on the board are still unproven, and it has not been run against a pump. Work through `docs/HARDWARE_STAGE.md`, stage 7.
+  has been repeated with that step switched on. **It has booted on a real ESP32-S board** (the boot log and the first status lines are in `measurements/`). Those status lines showed two
+  problems, both addressed in this version but not yet seen fixed on the board: the accelerometer module (a clone that answers `WHO_AM_I` 0x72) ran far
+  faster than the 1 kHz the sketch asks for, so the FIFO overflowed constantly, and holding the button could not start calibration because the one
+  31 kB calibration block did not fit in the fragmented heap. Sensor readings, Wi-Fi and flash behaviour are otherwise unproven, and it has not been
+  run against a pump. Work through `docs/HARDWARE_STAGE.md`, stage 7.
 
 ## Build
 
@@ -70,7 +73,8 @@ variance per feature; afterwards `z` is about +1 for "running" and about -1 for 
 
 | command | does |
 |---|---|
-| `status` | one line of state and counters (also printed every minute) |
+| `status` | one line of state and counters (also printed every minute); it ends with `heap_max` (largest free piece of memory), `acc_cfg` (which accelerometer setting is in use, -1 = none) and `acc_who` (the chip's `WHO_AM_I`) |
+| `mpu` | accelerometer probe: the chip's `WHO_AM_I`, its settings registers, one acceleration reading (about 1.000 g in total when the board is still), 200 bus reads, and the FIFO rate each setting really gives. Send its output when the accelerometer misbehaves |
 | `dump on` / `dump off` | print one `F,<ms>,<label>,<a or m>,<15 numbers>` row per window and sense |
 | `label R` / `label S` / `label -` | tag the rows (running / stopped / not labelled), for `training/train_classifier.py` |
 | `wipe` | erase the stored calibration and restart (the boot counter is kept) |
@@ -88,7 +92,7 @@ messages more than 60 s from its own time.
 ## Memory and timing, for whoever debugs the first build
 
 About 64 KB of heap for the audio and FFT buffers (allocated at boot, before Wi-Fi), about 25 KB of static tables
-(window and sine), plus about 31 KB of heap while calibrating; the sense task runs on core 1 at the highest priority, Wi-Fi and the network task on core 0. The
+(window and sine), plus about 31 KB of heap while calibrating, taken as four blocks of 7.7 KB because with Wi-Fi running the first board had 68 KB free in total but no single 31 KB piece (`heap_max` in `status` shows the largest piece); the sense task runs on core 1 at the highest priority, Wi-Fi and the network task on core 0. At boot the sketch measures the accelerometer's real FIFO rate with two settings (no low-pass with the divider, then the 184 Hz low-pass at its 1 kHz base rate) and keeps the first that gives 900 to 1100 Hz; if neither does it switches the accelerometer off and runs on the microphone alone, saying so. The
 accelerometer's own FIFO collects samples at 1 kHz so timing does not depend on the task being punctual, but the
 task has to come back within about 150 ms or the 1024-byte FIFO overflows (counted as `acc_overflows` in `status`).
 The microphone's DMA buffers hold 192 ms. A 8192-point FFT is the largest single job; the Hann window is cached

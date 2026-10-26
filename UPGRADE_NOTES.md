@@ -2,7 +2,7 @@
 
 What changed, how to check it, and what is still not done. Everything runs locally; no Supabase, no cloud database, no new service.
 
-Run `python3 -m pytest tests -q` (426 tests, about 2 minutes) and `python3 tools/build_site.py --check` after copying the files in.
+Run `python3 -m pytest tests -q` (428 tests, about 3 minutes) and `python3 tools/build_site.py --check` after copying the files in.
 
 ## What changed
 
@@ -45,6 +45,14 @@ The firmware has booted on a real ESP32-S board (node NB, boot 14, firmware 8612
 
 ## Not done, and not tested
 - No real pump, no real Wi-Fi link and no real Windows run of the new tools. `measure.py capture --port` needs `pip install pyserial` and was only tested with a stand-in.
-- The firmware itself did not change in this round, so it was not recompiled.
+- The firmware changed only in the 26 October follow-up (see the last section); the nine-point round itself did not touch it.
 - The dashboard was checked visually at desktop and phone widths and by tests for its text and structure. It has not been tested with a screen reader.
 - The baseline alarm thresholds (15 ft, 20 psi, 120 s, 300 s) are our choice, written down; a plant with different alarm limits would give different panel numbers.
+
+## Follow-up, 26 October: what the first status lines and the video showed
+The hardware teammate sent three status lines, a photo of the accelerometer and a 9 s video.
+- **Accelerometer.** `acc_rate` 3001-3198 Hz against the 1000 Hz asked for, `acc_overflows` up to 2185, `i2c_errs` up to 289, only 94 epochs in the time of three status lines. The chip answers 0x72 and carries no visible marking. Our reading (not proved): it ignores the sample-rate divider and runs far above 1 kHz; the 3 kHz is the speed at which the I2C bus could empty the FIFO. The firmware now measures the real FIFO rate at boot, tries the 184 Hz low-pass setting (1 kHz base) if the first fails, and otherwise switches the accelerometer off and says so; `mpu` prints a probe; `status` ends with `heap_max`, `acc_cfg`, `acc_who`.
+- **Calibration could not start.** In the video the button hold gave 3 beeps, 3 red flashes, then red/amber alternating. That pattern means "calibration failed or could not start". The old code asked the heap for one 31 kB block; the board had 68 kB free in total, so the request very likely failed on a fragmented heap. Calibration memory is now four 7.7 kB blocks, and the sketch prints a warning when memory is short. Two host tests cover it, and one of them fails on the old single block.
+- **Not confirmed on the board.** The sketch type-checks against the stand-in headers and compiles for the ESP32 (esp32 core 3.3.12, all warnings on, no warnings; 1,003,300 bytes of program space, 76%). Both fixes need one flash and one test by the hardware teammate.
+- Recorded as `measurements/2026-10-26-bench-status-NB` (bench). It proves nothing about a pump.
+

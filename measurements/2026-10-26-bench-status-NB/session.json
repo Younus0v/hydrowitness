@@ -1,0 +1,15 @@
+{
+ "schema": 1,
+ "id": "2026-10-26-bench-status-NB",
+ "purpose": "bench",
+ "date": "2026-10-26",
+ "operator": "hardware teammate (relayed by the team lead)",
+ "board": "ESP32-S development board, 38 pins (as described by the hardware teammate), on a breadboard",
+ "accelerometer": "GY-521 style module, silkscreen MPU-6050; the chip on it carries no visible marking in the photo; WHO_AM_I 0x72 (a genuine MPU-6050 answers 0x68); chip not identified",
+ "microphone": "I2S microphone on the breadboard; mic_errs=0 in all three status lines",
+ "buzzer": "active buzzer module (keyes style) on GPIO27",
+ "pump": "",
+ "mounting": "",
+ "source": "three S, status lines pasted by the hardware teammate through the team lead (with the W, lines the firmware printed after each); one 9 s phone video of the board (not stored here) and one photo of the accelerometer module",
+ "notes": "Firmware 861255cb (the version before the rate check). No pump, not calibrated. The status lines show acc_rate 3001-3198 Hz against the 1000 Hz the firmware asks for, acc_overflows rising from 636 to 2185 and i2c_errs from 40 to 289; epochs 27, 46, 94 (an epoch should take about half a second, so the node completed far fewer accelerometer blocks than it should). Microphone: mic_errs 0. Wi-Fi: rssi -59 from the second line, time=1 (clock set); sent=0 and dropped=4 because no HydroWitness server was reachable. heap=67944 bytes free in the third line. Interval between the status lines was not given. The video shows the amber LED blinking 1 s on / 1 s off (the node's 'needs calibration' pattern); at about 4.2 s, after the button was held, three beeps of about 2.5 kHz with three red flashes, then red and amber alternating every half second, which is the firmware's pattern for 'calibration could not start / move me'. The firmware also uses that pattern when it cannot get memory for the calibration buffer; with 68 kB free the single 31 kB block was the likely cause (fixed in the next firmware, not yet confirmed on the board)."
+}

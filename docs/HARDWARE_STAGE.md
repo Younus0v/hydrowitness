@@ -17,7 +17,7 @@ The three stages below are the only ones that need the parts. Do them in order; 
 | check | pass |
 |---|---|
 | boot line | prints node id, boot count, firmware hash, no `FATAL` |
-| accelerometer | no "accelerometer not found" line; `acc_rate` after a minute is between 990 and 1010 |
+| accelerometer | no "accelerometer not usable" line; the boot line `I,accelerometer: setting N ... measured X Hz` has X between 900 and 1100; `acc_rate` after a minute is between 990 and 1010 |
 | microphone | no "microphone could not start" line; with `dump on`, tap the box and the mic `F,...,m,...` rows change a lot |
 | button and lights | hold the button 3 s: the red light blinks fast; hold 3 s again to cancel |
 | Wi-Fi and time | `status` shows `time=1`, and `sent` increases every 10 s with `rejected=0` |
@@ -34,10 +34,13 @@ Recorded in `measurements/` (`python3 training/measure.py report` lists it in `r
 | check | state |
 |---|---|
 | boot line | **seen, 25 Oct 2026**, node NB: boot 14, firmware 861255cb, mains 60 Hz, "not calibrated". The pasted text has no `FATAL`, "accelerometer not found" or "microphone could not start" line, but it stops at the next line, so nothing after it was supplied. Board: an ESP32-S development board with 38 pins. Buzzer: active, on GPIO27 (the pin `config.h` uses) |
-| accelerometer | **open.** The module answered `WHO_AM_I` = `0x72`; a genuine MPU-6050 answers `0x68`. The sketch warns and carries on, but a different chip may not support the FIFO the sketch relies on. Read `acc_rate`, `acc_overflows` and `i2c_errs` from the `S,` status lines (one every 60 s, or type `status`). If `acc_rate` is 0 or `i2c_errs` keeps rising, replace the module with a GY-521 that answers `0x68` |
-| microphone, button and lights, Wi-Fi and time, server | not yet reported |
+| accelerometer | **not working yet (26 Oct 2026).** Three status lines gave `acc_rate` 3177, 3198, 3001 Hz (the sketch asks for 1000), `acc_overflows` 636, 1077, 2185 and `i2c_errs` 40, 70, 289. The module answers `WHO_AM_I` = `0x72` (a genuine MPU-6050 answers `0x68`) and its chip carries no visible marking in the photo. Our reading, not yet proved: the chip ignores the 1 kHz divider and fills its FIFO much faster than 1 kHz, and 3 kHz is only as fast as the I2C bus could drain it; so no usable accelerometer block was completed. This firmware measures the real rate at boot, tries a second setting, and otherwise switches the accelerometer off. Next: flash it, type `mpu` and send everything it prints, plus three `status` lines |
+| microphone | `mic_errs=0` in all three status lines, so the I2S driver ran; not yet checked with `dump on` while tapping the box |
+| button and lights | **seen on a phone video, 26 Oct.** Amber blink 1 s on / 1 s off (the "needs calibration" pattern) is right. Holding the button gave three beeps (about 2.5 kHz) with three red flashes, then red and amber alternating: that is the "calibration could not start" pattern, which the old firmware showed when its 31 kB calibration block did not fit in memory (68 kB free in total). Fixed in this version, not yet confirmed: holding the button 3 s should now give one beep and a fast red blink |
+| Wi-Fi and time | `rssi=-59` and `time=1` from the second status line: the board joined Wi-Fi and set its clock. `sent=0`, `dropped=4`: no server was reachable at `SERVER_URL`, as expected |
+| server | not yet tried |
 
-Do not calibrate, and do not put the node on a pump, until `acc_rate` is between 990 and 1010.
+Do not put the node on a pump until `acc_rate` is between 990 and 1010 or the accelerometer has been switched off on purpose. Calibrating with the microphone alone is allowed once the button test passes.
 
 ## Stage 8: record on a real pump and measure (gate: validation V3)
 

@@ -52,7 +52,7 @@ def signal(seed=1, schedule=SCHEDULE, strength_acc=1.0, strength_mic=1.0, kill_m
 
 class Run:
     def __init__(self, lines):
-        self.E, self.O, self.P, self.D, self.X = [], [], [], [], None
+        self.E, self.O, self.P, self.D, self.M, self.X = [], [], [], [], [], None
         for ln in lines:
             f = ln.split()
             if f[0] == "E":
@@ -65,6 +65,8 @@ class Run:
             elif f[0] == "D":
                 self.D.append(dict(t=int(f[1]), va=int(f[2]), vm=int(f[3]), qa=float(f[4]), qm=float(f[5]),
                                    mu_a=float(f[6]), mu_m=float(f[7])))
+            elif f[0] == "M":
+                self.M.append(int(f[1]))
             elif f[0] == "X":
                 self.X = tuple(int(v) for v in f[1:])
 
@@ -90,14 +92,17 @@ class Run:
         return sum(1 for i in range(1, len(s)) if s[i] and not s[i - 1])
 
 
-def simulate(cli, tmp_path, acc, mic, script, mains=60):
+def simulate(cli, tmp_path, acc, mic, script, mains=60, max_alloc=None):
     a = tmp_path / "acc.f32"
     m = tmp_path / "mic.f32"
     s = tmp_path / "script.txt"
     np.concatenate([acc[0], acc[1], acc[2]]).astype(np.float32).tofile(a)
     mic.astype(np.float32).tofile(m)
     s.write_text(script)
-    r = subprocess.run([cli, str(mains), str(a), str(m), str(s)], capture_output=True, text=True, timeout=120)
+    env = dict(os.environ)
+    if max_alloc is not None:
+        env["HW_MAX_ALLOC"] = str(max_alloc)
+    r = subprocess.run([cli, str(mains), str(a), str(m), str(s)], capture_output=True, text=True, timeout=120, env=env)
     assert r.returncode == 0, r.stderr
     return Run(r.stdout.strip().splitlines())
 
@@ -279,3 +284,24 @@ def test_the_example_secret_is_not_shipped_as_a_real_one():
     assert "secrets.h" in open(os.path.join(src, ".gitignore")).read()
     ino = open(os.path.join(src, "witness_node.ino")).read()
     assert "still has the example secret" in ino
+
+
+# ------------------------------------------------------------------------- calibration memory on a crowded heap
+SHORT_RUN = [(False, 30)]
+LONG_PRESS = "10000 down\n13500 up\n"
+
+
+def test_calibration_starts_when_no_single_piece_of_memory_is_bigger_than_8_kb(cli, tmp_path):
+    """The first real board had 68 kB free but could not give one 31 kB block, so holding the button showed the
+    'move me' pattern instead of starting calibration. Four blocks of 7.7 kB each fit."""
+    acc, mic = signal(schedule=SHORT_RUN)
+    r = simulate(cli, tmp_path, acc, mic, LONG_PRESS, max_alloc=8192)
+    assert r.M == [] and CAL_OFF in r.phases()
+
+
+def test_with_too_little_memory_the_node_says_so_and_changes_nothing(cli, tmp_path):
+    acc, mic = signal(schedule=SHORT_RUN)
+    r = simulate(cli, tmp_path, acc, mic, LONG_PRESS, max_alloc=4096)
+    assert len(r.M) == 1 and 13_000 <= r.M[0] <= 14_000
+    assert r.phases() == []                                       # still waiting for calibration, no phase change
+    assert r.rising_edges(2, 13_000, 14_300) == 3                 # the red 'cannot do it' flashes

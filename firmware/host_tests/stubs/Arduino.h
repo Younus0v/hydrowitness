@@ -42,6 +42,7 @@ extern HardwareSerial Serial;
 struct EspClass {
   String getSketchMD5() { return String(); }
   uint32_t getFreeHeap() { return 0; }
+  uint32_t getMaxAllocHeap() { return 0; }
   void restart() {}
 };
 extern EspClass ESP;
@@ -50,6 +51,7 @@ void pinMode(uint8_t, uint8_t);
 void digitalWrite(uint8_t, uint8_t);
 int digitalRead(uint8_t);
 uint32_t millis();
+uint32_t micros();
 void delay(uint32_t);
 uint32_t analogReadMilliVolts(uint8_t);
 

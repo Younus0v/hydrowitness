@@ -12,6 +12,10 @@
 #include "hw_model.h"
 #include "hw_wire.h"
 
+#ifndef HW_CAL_MALLOC
+#define HW_CAL_MALLOC malloc            // the host test replaces this with an allocator that refuses big blocks
+#endif
+
 namespace hw {
 
 constexpr uint32_t CAL_SECONDS = 120;          // length of each baseline recording
@@ -204,6 +208,8 @@ class NodeLogic {
 
   // Set when the stored models changed (calibration finished or a confirmation adapted them).
   bool take_dirty() { const bool d = dirty_; dirty_ = false; return d; }
+  // True once after a calibration could not start for lack of memory, so the sketch can print it.
+  bool take_cal_nomem() { const bool n = cal_nomem_; cal_nomem_ = false; return n; }
   void export_stored(Stored& s) const { s.acc = acc_; s.mic = mic_; s.va = (uint8_t)va_; s.vm = (uint8_t)vm_; }
 
   // Result of the most recent calibration, for the serial log.
@@ -229,7 +235,8 @@ class NodeLogic {
   bool wa_ = false, wm_ = false;
   uint32_t epoch_idx_ = 0;
 
-  float* cal_ = nullptr;                          // 4 slots x CAL_MAX_WINDOWS x NFEAT, only while calibrating
+  float* cal_[4] = {nullptr, nullptr, nullptr, nullptr};   // 4 separate blocks of CAL_MAX_WINDOWS x NFEAT floats, only while calibrating
+  bool cal_nomem_ = false;                        // the last attempt to start a calibration found too little memory
   int cal_n_[4] = {0, 0, 0, 0};
   uint32_t cal_start_ = 0;
   CalResult cal_acc_ = {0, 0, 0, POOR}, cal_mic_ = {0, 0, 0, POOR};
@@ -253,8 +260,18 @@ class NodeLogic {
     usable_mic_ = mic_.valid() && vm_ != POOR;
   }
 
-  float* slot(int i) { return cal_ + (size_t)i * CAL_MAX_WINDOWS * NFEAT; }
-  void free_cal() { if (cal_) { free(cal_); cal_ = nullptr; } }
+  float* slot(int i) { return cal_[i]; }
+  void free_cal() { for (int i = 0; i < 4; i++) { if (cal_[i]) { free(cal_[i]); cal_[i] = nullptr; } } }
+  // Four blocks of about 7.7 kB, not one of about 31 kB: with Wi-Fi running the free memory is split into pieces, and one big
+  // request failed on the first real board (the free total was 68 kB but no single piece was 31 kB).
+  bool alloc_cal() {
+    free_cal();
+    for (int i = 0; i < 4; i++) {
+      cal_[i] = (float*)HW_CAL_MALLOC(sizeof(float) * CAL_MAX_WINDOWS * NFEAT);
+      if (!cal_[i]) { free_cal(); return false; }
+    }
+    return true;
+  }
 
   void on_press(Press p, uint32_t now) {
     if (p == PRESS_LONG) {
@@ -274,9 +291,8 @@ class NodeLogic {
   }
 
   void start_cal(uint32_t now) {
-    free_cal();
-    cal_ = (float*)malloc(sizeof(float) * 4 * CAL_MAX_WINDOWS * NFEAT);
-    if (!cal_) { show(OVL_CAL_POOR, now); beep(3, now); return; }    // no memory: say so, change nothing
+    if (!alloc_cal()) { cal_nomem_ = true; show(OVL_CAL_POOR, now); beep(3, now); return; }    // no memory: say so, change nothing
+    cal_nomem_ = false;
     for (int i = 0; i < 4; i++) cal_n_[i] = 0;
     cal_start_ = now;
     ovl_ = OVL_NONE;

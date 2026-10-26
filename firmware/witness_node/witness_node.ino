@@ -4,7 +4,8 @@
 // This file is only the hardware glue (I2S microphone, I2C accelerometer, Wi-Fi, flash, LEDs). All of the
 // signal processing, classification, calibration and operator-button logic is in hw_dsp.h, hw_model.h and
 // hw_node.h, which are compiled and tested on a normal computer (tests/test_firmware_core.py and
-// tests/test_firmware_node.py). THIS FILE COMPILES FOR THE ESP32 BUT HAS NOT BEEN RUN ON ONE. See README.md.
+// tests/test_firmware_node.py). THIS FILE HAS BOOTED ON ONE ESP32-S BOARD (25 Oct 2026) BUT HAS NOT BEEN RUN ON A PUMP,
+// AND ITS ACCELEROMETER SET-UP HAS NOT YET BEEN SEEN WORKING ON THE CLONE CHIP THAT BOARD CARRIES. See README.md.
 //
 // Needs the Arduino-ESP32 core 3.x. Read-only by design: the node only listens and reports. It has no
 // output to any pump, valve or control system, and raw audio never leaves the device.
@@ -31,7 +32,18 @@
 #include "hw_node.h"
 
 // ------------------------------------------------------------------------------------------ constants
+#ifndef I2C_HZ
+#define I2C_HZ 400000                                // I2C clock; try 100000 if i2c_errs keeps rising on long jumper wires
+#endif
 static const uint8_t MPU_ADDR = 0x68;                // GY-521 with AD0 left low
+// Accelerometer set-ups tried in order at boot; the first one whose measured FIFO rate is within 10% of 1 kHz is kept.
+// A genuine MPU-6050 gives 1 kHz with the first. A clone that ignores the divider gives 1 kHz with the second.
+struct MpuCfg { uint8_t dlpf; uint8_t div; const char* name; };
+static const MpuCfg MPU_CFGS[] = {
+  {0x00, 0x07, "no low-pass, 8 kHz base divided by 8"},
+  {0x01, 0x00, "184 Hz low-pass, 1 kHz base divided by 1"},
+};
+static const int MPU_NCFG = 2;
 static const int ACC_SLACK = 192;                    // spare accelerometer samples carried between blocks
 static const int MIC_CHUNK = 512;                    // microphone samples per i2s read (32 ms)
 static const uint32_t EPOCH_DEADLINE_MS = 1200;      // give up on a block that takes this long (nominal 512 ms)
@@ -62,6 +74,10 @@ static uint8_t secret[32];
 static uint32_t boot_count = 0, seq = 0;
 static char fw_hash[17] = "";
 static bool mic_present = false, mpu_present = false;
+static int mpu_cfg_idx = -1;                         // which MPU_CFGS entry is in use, -1 if none gave 1 kHz
+static uint8_t mpu_who = 0;                          // WHO_AM_I as read at the last start
+static float mpu_seen_hz[MPU_NCFG] = {0, 0};         // FIFO rate measured with each set-up at boot (negative: faster than 1.7 kHz)
+static volatile bool mpu_probe_req = false;          // set by the `mpu` command, handled by the sense task so the I2C bus has one user
 
 // counters, printed by `status`
 static uint32_t acc_total = 0, acc_overflows = 0, acc_i2c_errs = 0, acc_i2c_run = 0, mic_errs = 0;
@@ -259,22 +275,96 @@ static void mpu_fifo_reset() {
   acc_fill = 0;
 }
 
-static bool mpu_init() {
-  Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL, 400000);
+static void mpu_apply_cfg(int i) {
+  mpu_write(0x1A, MPU_CFGS[i].dlpf);                 // CONFIG: digital low-pass, which also sets the base rate (8 kHz off, 1 kHz on)
+  mpu_write(0x19, MPU_CFGS[i].div);                  // SMPLRT_DIV: sample rate = base rate / (1 + this)
+}
+
+// The sensor's real sample rate as the FIFO shows it: empty the FIFO, let it fill for 100 ms, count what is in it.
+// Returns samples per second, 0 if the bus failed, or -1 if the 1024-byte FIFO had already overflowed, which means the
+// sensor runs faster than about 1.7 kHz (this is what the first real board did).
+static float mpu_measure_rate() {
+  mpu_fifo_reset();
+  const uint32_t t0 = micros();
+  delay(100);
+  uint8_t cnt[2];
+  if (!mpu_read(0x72, cnt, 2)) return 0.0f;
+  const uint32_t dt = micros() - t0;
+  const int bytes = ((int)cnt[0] << 8) | cnt[1];
+  if (bytes >= 1000) return -1.0f;
+  return (float)(bytes / 6) * 1000000.0f / (float)dt;
+}
+
+// measure = true at boot: find a set-up that gives 1 kHz, or give the accelerometer up with a clear message.
+// measure = false after a bus restart: reuse the set-up found at boot, so a glitch cannot switch the sensor off for good.
+static bool mpu_init(bool measure) {
+  Wire.begin(PIN_I2C_SDA, PIN_I2C_SCL, I2C_HZ);
   Wire.setTimeOut(30);
   uint8_t who = 0;
   if (!mpu_read(0x75, &who, 1)) return false;
-  if (who != 0x68) Serial.printf("W,MPU6050 WHO_AM_I is 0x%02x, expected 0x68 (a clone? continuing)\n", who);
+  mpu_who = who;
+  if (measure && who != 0x68) Serial.printf("W,MPU6050 WHO_AM_I is 0x%02x, expected 0x68 (a clone: checking its sample rate)\n", who);
   if (!mpu_write(0x6B, 0x80)) return false;          // reset
   delay(100);
   mpu_write(0x6B, 0x01);                             // wake, clock from the gyro PLL
-  mpu_write(0x1A, 0x00);                             // no digital low-pass: accelerometer bandwidth 260 Hz, base rate 8 kHz
-  mpu_write(0x19, 0x07);                             // sample rate = 8 kHz / (1 + 7) = 1 kHz
   mpu_write(0x1C, 0x00);                             // +-2 g, 16384 LSB per g
+  if (measure) {
+    mpu_cfg_idx = -1;
+    for (int i = 0; i < MPU_NCFG && mpu_cfg_idx < 0; i++) {
+      mpu_apply_cfg(i);
+      mpu_seen_hz[i] = mpu_measure_rate();
+      if (mpu_seen_hz[i] >= 900.0f && mpu_seen_hz[i] <= 1100.0f) mpu_cfg_idx = i;
+    }
+    if (mpu_cfg_idx < 0) {
+      mpu_write(0x6A, 0x00);                         // FIFO off
+      Serial.printf("W,accelerometer: no setting gives 1 kHz (measured %.0f and %.0f Hz, -1 = faster than 1700): not using it. Type mpu for details\n",
+                    (double)mpu_seen_hz[0], (double)mpu_seen_hz[1]);
+      return false;
+    }
+    Serial.printf("I,accelerometer: setting %d (%s) measured %.0f Hz\n", mpu_cfg_idx, MPU_CFGS[mpu_cfg_idx].name, (double)mpu_seen_hz[mpu_cfg_idx]);
+  } else {
+    if (mpu_cfg_idx < 0) return false;
+    mpu_apply_cfg(mpu_cfg_idx);
+  }
   mpu_fifo_reset();
   acc_started_ms = millis();
   acc_total = 0;
   return true;
+}
+
+// Typed as `mpu`; runs inside the sense task. Prints what the chip says about itself and what it really does, so that a
+// clone can be told from a wiring problem. Afterwards the set-up in use is restored.
+static void mpu_probe() {
+  uint8_t who = 0;
+  if (!mpu_read(0x75, &who, 1)) { Serial.println("I,mpu probe: no answer from the accelerometer (check SDA, SCL, power, ground)"); return; }
+  Serial.printf("I,mpu probe: WHO_AM_I 0x%02x (a genuine MPU-6050 gives 0x68), I2C clock %d Hz\n", who, (int)I2C_HZ);
+  const uint8_t regs[7] = {0x19, 0x1A, 0x1B, 0x1C, 0x23, 0x6A, 0x6B};
+  uint8_t r[7] = {0, 0, 0, 0, 0, 0, 0};
+  for (int i = 0; i < 7; i++) mpu_read(regs[i], &r[i], 1);
+  Serial.printf("I,mpu probe: SMPLRT_DIV 0x%02x CONFIG 0x%02x GYRO_CONFIG 0x%02x ACCEL_CONFIG 0x%02x FIFO_EN 0x%02x USER_CTRL 0x%02x PWR_MGMT_1 0x%02x\n",
+                r[0], r[1], r[2], r[3], r[4], r[5], r[6]);
+  uint8_t a[6];
+  if (mpu_read(0x3B, a, 6)) {
+    float g[3];
+    for (int i = 0; i < 3; i++) g[i] = (float)(int16_t)(((int16_t)a[i * 2] << 8) | a[i * 2 + 1]) * (1.0f / 16384.0f);
+    Serial.printf("I,mpu probe: acceleration x %.3f y %.3f z %.3f g, total %.3f g (about 1.000 when the board is still)\n",
+                  (double)g[0], (double)g[1], (double)g[2], (double)sqrtf(g[0] * g[0] + g[1] * g[1] + g[2] * g[2]));
+  } else {
+    Serial.println("I,mpu probe: could not read the acceleration registers");
+  }
+  int bad = 0;
+  for (int i = 0; i < 200; i++) { uint8_t w = 0; if (!mpu_read(0x75, &w, 1) || w != who) bad++; }
+  Serial.printf("I,mpu probe: 200 reads of WHO_AM_I, %d failed\n", bad);
+  for (int i = 0; i < MPU_NCFG; i++) {
+    mpu_apply_cfg(i);
+    const float hz = mpu_measure_rate();
+    if (hz < 0) Serial.printf("I,mpu probe: setting %d (%s): FIFO overflowed within 100 ms, faster than 1700 Hz\n", i, MPU_CFGS[i].name);
+    else Serial.printf("I,mpu probe: setting %d (%s): %.0f Hz\n", i, MPU_CFGS[i].name, (double)hz);
+  }
+  if (mpu_cfg_idx >= 0) { mpu_apply_cfg(mpu_cfg_idx); mpu_fifo_reset(); } else { mpu_write(0x6A, 0x00); }
+  acc_total = 0;
+  acc_started_ms = millis();
+  Serial.println("I,mpu probe done");
 }
 
 // Pull whatever the sensor's FIFO holds into accb. The sensor clocks its own samples, so timing does not
@@ -287,7 +377,7 @@ static void drain_acc() {
     if (++acc_i2c_run >= 20) {                       // the bus is stuck: restart it and the sensor
       acc_i2c_run = 0;
       Wire.end();
-      mpu_present = mpu_init();
+      mpu_present = mpu_init(false);
     }
     return;
   }
@@ -346,6 +436,7 @@ static void sense_task(void*) {
   uint32_t last_hb = millis();
   int epochs = 0;
   for (;;) {
+    if (mpu_probe_req) { mpu_probe(); mpu_probe_req = false; }
     const uint32_t start = millis();
     int mic_fill = 0;
     bool mic_ok = mic_present;
@@ -393,6 +484,9 @@ static void sense_task(void*) {
     const hw::Phase ph = logic.phase();
     unlock();
     epochs_done++;
+    lock(); const bool no_mem = logic.take_cal_nomem(); unlock();
+    if (no_mem) Serial.printf("W,calibration could not start: not enough memory (free %u bytes, largest piece %u). Restart the node and try again\n",
+                              (unsigned)ESP.getFreeHeap(), (unsigned)ESP.getMaxAllocHeap());
 
     if (dump_on) {
       const float* fa = logic.last_acc_features();
@@ -428,10 +522,10 @@ static void print_status() {
   unlock();
   Serial.printf("S,phase=%d,state=%c,conf=%d,acc=%c,mic=%c,verdict_acc=%d,verdict_mic=%d,offline=%d,mains=%d,", phase, d.st, d.c,
                 d.ca, d.cm, va, vm, off ? 1 : 0, logic.mains_ok() ? 1 : 0);
-  Serial.printf("acc_rate=%.1f,acc_overflows=%lu,i2c_errs=%lu,mic_errs=%lu,epochs=%lu,sent=%lu,dropped=%lu,rejected=%lu,heap=%u,rssi=%d,time=%d\n",
+  Serial.printf("acc_rate=%.1f,acc_overflows=%lu,i2c_errs=%lu,mic_errs=%lu,epochs=%lu,sent=%lu,dropped=%lu,rejected=%lu,heap=%u,rssi=%d,time=%d,heap_max=%u,acc_cfg=%d,acc_who=0x%02x\n",
                 rate, (unsigned long)acc_overflows, (unsigned long)acc_i2c_errs, (unsigned long)mic_errs, (unsigned long)epochs_done,
                 (unsigned long)msgs_sent, (unsigned long)msgs_dropped, (unsigned long)msgs_rejected, (unsigned)ESP.getFreeHeap(),
-                WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : 0, epoch_ms() ? 1 : 0);
+                WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : 0, epoch_ms() ? 1 : 0, (unsigned)ESP.getMaxAllocHeap(), mpu_cfg_idx, mpu_who);
   if (rate > 0 && (rate < 990 || rate > 1010))
     Serial.printf("W,accelerometer sample rate is %.1f Hz, not 1000: the mains hum bands may sit slightly off (see README)\n", rate);
 }
@@ -444,9 +538,10 @@ static void handle_command(char* line) {
   } else if (!strcmp(line, "dump on")) { dump_on = true; Serial.println("I,feature dump on: rows F,ms,label,channel,f0..f14");
   } else if (!strcmp(line, "dump off")) { dump_on = false; Serial.println("I,feature dump off");
   } else if (!strcmp(line, "status")) { print_status();
+  } else if (!strcmp(line, "mpu")) { mpu_probe_req = true; Serial.println("I,mpu probe requested, results follow within a second");
   } else if (!strcmp(line, "wipe")) { prefs.remove("model"); Serial.println("I,model erased, restarting"); delay(200); ESP.restart();
   } else {
-    Serial.println("I,commands: status | dump on | dump off | label R | label S | label - | wipe");
+    Serial.println("I,commands: status | mpu | dump on | dump off | label R | label S | label - | wipe");
   }
 }
 
@@ -478,8 +573,8 @@ void setup() {
   Serial.printf("I,Witness Node %s boot %lu firmware %s mains %d Hz, %s\n", NODE_ID, (unsigned long)boot_count, fw_hash, MAINS_HZ,
                 have ? "calibration found" : "not calibrated: hold the button 3 s with the pump OFF");
 
-  mpu_present = mpu_init();
-  if (!mpu_present) Serial.println("W,accelerometer not found: running on the microphone alone");
+  mpu_present = mpu_init(true);
+  if (!mpu_present) Serial.println("W,accelerometer not usable: running on the microphone alone");
   mic_present = mic_init();
   if (!mic_present) Serial.println("W,microphone could not start: running on the accelerometer alone");
   if (!mpu_present && !mic_present) fatal("neither sensor works: check the wiring (docs/WIRING.md)");
