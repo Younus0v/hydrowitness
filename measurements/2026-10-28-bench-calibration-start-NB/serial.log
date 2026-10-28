@@ -1,0 +1,6 @@
+S,phase=0,state=U,conf=200,acc=U,mic=U,verdict_acc=0,verdict_mic=0,offline=1,mains=1,acc_rate=999.3,acc_overflows=0,i2c_errs=0,mic_errs=0,epochs=232,sent=0,dropped=0,rejected=0,heap=67988,rssi=-74,time=1,heap_max=36852,acc_cfg=1,acc_who=0x72
+I,button: held 3 s, calibration started: recording the STOPPED baseline, keep the pump off (room for 128 windows per baseline, usable memory free now 16132)
+I,button: held 3 s, calibration cancelled
+S,phase=0,state=U,conf=200,acc=U,mic=U,verdict_acc=0,verdict_mic=0,offline=1,mains=1,acc_rate=998.1,acc_overflows=0,i2c_errs=6,mic_errs=0,epochs=115,sent=0,dropped=0,rejected=0,heap=69624,rssi=0,time=0,heap_max=36852,heap_min=51176,mem8=32012,mem8_max=29684,mem8_min=13608,acc_cfg=1,acc_who=0x72
+S,phase=0,state=U,conf=200,acc=U,mic=U,verdict_acc=0,verdict_mic=0,offline=1,mains=1,acc_rate=999.2,acc_overflows=0,i2c_errs=6,mic_errs=0,epochs=122,sent=0,dropped=0,rejected=0,heap=69632,rssi=0,time=0,heap_max=36852,heap_min=51176,mem8=32020,mem8_max=29684,mem8_min=13608,acc_cfg=1,acc_who=0x72
+S,phase=0,state=U,conf=200,acc=U,mic=U,verdict_acc=0,verdict_mic=0,offline=1,mains=1,acc_rate=999.2,acc_overflows=0,i2c_errs=7,mic_errs=0,epochs=232,sent=0,dropped=0,rejected=0,heap=69472,rssi=-68,time=0,heap_max=36852,heap_min=51176,mem8=31704,mem8_max=29684,mem8_min=13608,acc_cfg=1,acc_who=0x72

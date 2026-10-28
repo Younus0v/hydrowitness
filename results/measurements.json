@@ -110,6 +110,71 @@
    "counts_as_pump_evidence": false
   },
   {
+   "id": "2026-10-28-bench-calibration-start-NB",
+   "purpose": "bench",
+   "date": "2026-10-28",
+   "board": "ESP32-S development board on a breadboard, same as the earlier sessions",
+   "pump": "",
+   "mounting": "",
+   "source": "serial text pasted by the hardware teammate through the team lead: five S, lines and two I,button lines from the 28 Oct final firmware",
+   "problems": [],
+   "observations": {
+    "boots": [],
+    "warnings": [],
+    "fatal": [],
+    "status_lines": 4,
+    "last_status": {
+     "phase": "0",
+     "state": "U",
+     "conf": "200",
+     "acc": "U",
+     "mic": "U",
+     "verdict_acc": "0",
+     "verdict_mic": "0",
+     "offline": "1",
+     "mains": "1",
+     "acc_rate": "999.2",
+     "acc_overflows": "0",
+     "i2c_errs": "7",
+     "mic_errs": "0",
+     "epochs": "232",
+     "sent": "0",
+     "dropped": "0",
+     "rejected": "0",
+     "heap": "69472",
+     "rssi": "-68",
+     "time": "0",
+     "heap_max": "36852",
+     "acc_cfg": "1",
+     "acc_who": "0x72",
+     "heap_min": "51176",
+     "mem8": "31704",
+     "mem8_max": "29684",
+     "mem8_min": "13608"
+    }
+   },
+   "windows": {
+    "labelled": 0,
+    "unlabelled": 0,
+    "damaged": 0,
+    "channels": {
+     "acc": {
+      "running_windows": 0,
+      "stopped_windows": 0,
+      "running_runs": 0,
+      "stopped_runs": 0
+     },
+     "mic": {
+      "running_windows": 0,
+      "stopped_windows": 0,
+      "running_runs": 0,
+      "stopped_runs": 0
+     }
+    }
+   },
+   "counts_as_pump_evidence": false
+  },
+  {
    "id": "2026-10-28-bench-mpu-probe-NB",
    "purpose": "bench",
    "date": "2026-10-28",
@@ -176,10 +241,10 @@
   }
  ],
  "counted": {
-  "bench": 3,
+  "bench": 4,
   "development": 0,
   "evaluation": 0
  },
  "heldout": null,
- "headline": "No measurements from a real pump have been supplied. Every number in results/ comes from a simulated plant and simulated Witness Nodes. The firmware has booted on a real board (3 bench logs, no pump); that is the only real-hardware evidence so far."
+ "headline": "No measurements from a real pump have been supplied. Every number in results/ comes from a simulated plant and simulated Witness Nodes. The firmware has booted on a real board (4 bench logs, no pump); that is the only real-hardware evidence so far."
 }

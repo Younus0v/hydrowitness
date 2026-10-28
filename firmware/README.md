@@ -23,8 +23,8 @@ server. It never controls anything. Raw audio never leaves the device; only a ve
   problems. (1) The accelerometer module (a clone that answers `WHO_AM_I` 0x72) ran far faster than the 1 kHz the sketch asks for and overflowed
   its FIFO constantly; since 26 Oct the sketch measures the real rate at boot and picks a setting, and on 28 Oct the board showed `acc_rate` 999.0 to 999.4 Hz with 0 overflows
   and 0 bus errors, so that one is fixed on this board. (2) Holding the button does not start calibration (the "move me" pattern and a warning line). The cause is memory: the `heap` and `heap_max` figures count instruction RAM that `malloc` cannot use,
-  so the real free memory was about 31 kB, less than the 31 kB the calibration asked for. The recordings are now stored as half-precision numbers (15 kB), and every button hold is logged; whether that
-  fixes it on the board has not been seen yet. Wi-Fi and flash behaviour are otherwise unproven, and it has not been
+  so the real free memory was about 31 kB, less than the 31 kB the calibration asked for. The recordings are now stored as half-precision numbers (15 kB), and every button hold is logged. On 28 Oct the board started calibration ("room for 128 windows per baseline") and cancelled it
+  on the next hold, with 32 kB usable memory free and 13.6 kB the lowest ever seen. Wi-Fi and flash behaviour are otherwise unproven, and it has not been
   run against a pump. Work through `docs/HARDWARE_STAGE.md`, stage 7.
 
 ## Build

@@ -1,0 +1,15 @@
+{
+ "schema": 1,
+ "id": "2026-10-28-bench-calibration-start-NB",
+ "purpose": "bench",
+ "date": "2026-10-28",
+ "operator": "hardware teammate (relayed by the team lead)",
+ "board": "ESP32-S development board on a breadboard, same as the earlier sessions",
+ "accelerometer": "same clone GY-521 module, WHO_AM_I 0x72, running with setting 1 (acc_cfg=1)",
+ "microphone": "same I2S microphone; mic_errs=0",
+ "buzzer": "active buzzer on GPIO27",
+ "pump": "",
+ "mounting": "",
+ "source": "serial text pasted by the hardware teammate through the team lead: five S, lines and two I,button lines from the 28 Oct final firmware",
+ "notes": "First run of the firmware with half-precision calibration recordings (witness_node_firmware_FINAL). No pump. The first pasted S line has no heap_min or mem8 fields: it was printed by the previous firmware before reflashing. RESULT: holding the button for 3 s started calibration (the node printed 'calibration started ... room for 128 windows per baseline, usable memory free now 16132') and a second 3 s hold cancelled it. The teammate reports the lights and buzzer did what was expected (one beep and a fast red blink). This confirms the memory explanation: the status lines now show usable memory (mem8) of 31704 to 32020 bytes free with the largest piece 29684, and the lowest it ever reached (mem8_min) was 13608 bytes, which includes the calibration's 15 kB being taken. The old figures (heap 69472, heap_max 36852) were overstated because they count instruction RAM. ACCELEROMETER: acc_rate 998.1 to 999.2 Hz, 0 overflows, 6 to 7 bus errors in the first 232 epochs after reset (a handful, not rising fast; watch it on longer runs). MICROPHONE: mic_errs 0. Wi-Fi: rssi 0 right after reset, -68 later; time=0 in the last line (clock not yet set, so the node sends nothing yet: sent=0, dropped=0); no server reachable. NOT TESTED: a full calibration through both baselines, anything with a pump or motor, the server link."
+}
