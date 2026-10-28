@@ -20,9 +20,11 @@ server. It never controls anything. Raw audio never leaves the device; only a ve
   declaration of every sketch function without attributes; a teammate's Arduino IDE found that one, because
   the first compile had skipped the IDE's prototype step. Both are fixed, a test guards the second, and the compile
   has been repeated with that step switched on. **It has booted on a real ESP32-S board** (the boot log and the first status lines are in `measurements/`). Those status lines showed two
-  problems, both addressed in this version but not yet seen fixed on the board: the accelerometer module (a clone that answers `WHO_AM_I` 0x72) ran far
-  faster than the 1 kHz the sketch asks for, so the FIFO overflowed constantly, and holding the button could not start calibration because the one
-  31 kB calibration block did not fit in the fragmented heap. Sensor readings, Wi-Fi and flash behaviour are otherwise unproven, and it has not been
+  problems. (1) The accelerometer module (a clone that answers `WHO_AM_I` 0x72) ran far faster than the 1 kHz the sketch asks for and overflowed
+  its FIFO constantly; since 26 Oct the sketch measures the real rate at boot and picks a setting, and on 28 Oct the board showed `acc_rate` 999.0 to 999.4 Hz with 0 overflows
+  and 0 bus errors, so that one is fixed on this board. (2) Holding the button does not start calibration (the "move me" pattern and a warning line). The cause is memory: the `heap` and `heap_max` figures count instruction RAM that `malloc` cannot use,
+  so the real free memory was about 31 kB, less than the 31 kB the calibration asked for. The recordings are now stored as half-precision numbers (15 kB), and every button hold is logged; whether that
+  fixes it on the board has not been seen yet. Wi-Fi and flash behaviour are otherwise unproven, and it has not been
   run against a pump. Work through `docs/HARDWARE_STAGE.md`, stage 7.
 
 ## Build
@@ -73,7 +75,7 @@ variance per feature; afterwards `z` is about +1 for "running" and about -1 for 
 
 | command | does |
 |---|---|
-| `status` | one line of state and counters (also printed every minute); it ends with `heap_max` (largest free piece of memory), `acc_cfg` (which accelerometer setting is in use, -1 = none) and `acc_who` (the chip's `WHO_AM_I`) |
+| `status` | one line of state and counters (also printed every minute); it ends with `heap_max` and `heap_min` (these count instruction RAM too), `mem8`, `mem8_max`, `mem8_min` (usable memory: free, largest piece, lowest ever), `acc_cfg` (which accelerometer setting is in use, -1 = none) and `acc_who` (the chip's `WHO_AM_I`) |
 | `mpu` | accelerometer probe: the chip's `WHO_AM_I`, its settings registers, one acceleration reading (about 1.000 g in total when the board is still), 200 bus reads, and the FIFO rate each setting really gives. Send its output when the accelerometer misbehaves |
 | `dump on` / `dump off` | print one `F,<ms>,<label>,<a or m>,<15 numbers>` row per window and sense |
 | `label R` / `label S` / `label -` | tag the rows (running / stopped / not labelled), for `training/train_classifier.py` |
@@ -92,7 +94,7 @@ messages more than 60 s from its own time.
 ## Memory and timing, for whoever debugs the first build
 
 About 64 KB of heap for the audio and FFT buffers (allocated at boot, before Wi-Fi), about 25 KB of static tables
-(window and sine), plus about 31 KB of heap while calibrating, taken as four blocks of 7.7 KB because with Wi-Fi running the first board had 68 KB free in total but no single 31 KB piece (`heap_max` in `status` shows the largest piece); the sense task runs on core 1 at the highest priority, Wi-Fi and the network task on core 0. At boot the sketch measures the accelerometer's real FIFO rate with two settings (no low-pass with the divider, then the 184 Hz low-pass at its 1 kHz base rate) and keeps the first that gives 900 to 1100 Hz; if neither does it switches the accelerometer off and runs on the microphone alone, saying so. The
+(window and sine), plus 15 KB of heap while calibrating (four blocks of 3.8 KB, half-precision numbers; if that is not free, room for 96, 64 or 48 windows per baseline is tried, down to 5.8 KB). Only about 31 KB of ordinary memory is free once Wi-Fi is up. The `heap`, `heap_max` and `heap_min` figures in `status` also count instruction RAM that `malloc` cannot use and overstate it; `mem8`, `mem8_max` and `mem8_min` are the usable figures; the sense task runs on core 1 at the highest priority, Wi-Fi and the network task on core 0. At boot the sketch measures the accelerometer's real FIFO rate with two settings (no low-pass with the divider, then the 184 Hz low-pass at its 1 kHz base rate) and keeps the first that gives 900 to 1100 Hz; if neither does it switches the accelerometer off and runs on the microphone alone, saying so. The
 accelerometer's own FIFO collects samples at 1 kHz so timing does not depend on the task being punctual, but the
 task has to come back within about 150 ms or the 1024-byte FIFO overflows (counted as `acc_overflows` in `status`).
 The microphone's DMA buffers hold 192 ms. A 8192-point FFT is the largest single job; the Hann window is cached

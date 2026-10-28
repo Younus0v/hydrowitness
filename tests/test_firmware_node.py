@@ -52,7 +52,7 @@ def signal(seed=1, schedule=SCHEDULE, strength_acc=1.0, strength_mic=1.0, kill_m
 
 class Run:
     def __init__(self, lines):
-        self.E, self.O, self.P, self.D, self.M, self.X = [], [], [], [], [], None
+        self.E, self.O, self.P, self.D, self.M, self.B, self.X = [], [], [], [], [], [], None
         for ln in lines:
             f = ln.split()
             if f[0] == "E":
@@ -67,6 +67,8 @@ class Run:
                                    mu_a=float(f[6]), mu_m=float(f[7])))
             elif f[0] == "M":
                 self.M.append(int(f[1]))
+            elif f[0] == "B":
+                self.B.append((int(f[1]), f[2]))
             elif f[0] == "X":
                 self.X = tuple(int(v) for v in f[1:])
 
@@ -291,17 +293,40 @@ SHORT_RUN = [(False, 30)]
 LONG_PRESS = "10000 down\n13500 up\n"
 
 
-def test_calibration_starts_when_no_single_piece_of_memory_is_bigger_than_8_kb(cli, tmp_path):
-    """The first real board had 68 kB free but could not give one 31 kB block, so holding the button showed the
-    'move me' pattern instead of starting calibration. Four blocks of 7.7 kB each fit."""
+def test_calibration_starts_when_no_single_piece_of_memory_is_bigger_than_4_kb(cli, tmp_path):
+    """On the first real board only about 31 kB of usable memory was free (the 67 kB the core reported also counts instruction RAM),
+    and the calibration used to ask for 31 kB at once. It now needs four pieces of 3.8 kB, so even a crowded heap is enough."""
     acc, mic = signal(schedule=SHORT_RUN)
-    r = simulate(cli, tmp_path, acc, mic, LONG_PRESS, max_alloc=8192)
+    r = simulate(cli, tmp_path, acc, mic, LONG_PRESS, max_alloc=4096)
+    assert r.M == [] and CAL_OFF in r.phases() and [e for _, e in r.B] == ["K"]
+
+
+def test_on_a_still_more_crowded_heap_it_keeps_fewer_windows_but_still_starts(cli, tmp_path):
+    acc, mic = signal(schedule=SHORT_RUN)
+    r = simulate(cli, tmp_path, acc, mic, LONG_PRESS, max_alloc=2048)            # room for 64 windows per baseline, not 128
+    assert r.M == [] and CAL_OFF in r.phases()
+    r = simulate(cli, tmp_path, acc, mic, LONG_PRESS, max_alloc=1500)            # room for exactly 48
     assert r.M == [] and CAL_OFF in r.phases()
 
 
 def test_with_too_little_memory_the_node_says_so_and_changes_nothing(cli, tmp_path):
     acc, mic = signal(schedule=SHORT_RUN)
-    r = simulate(cli, tmp_path, acc, mic, LONG_PRESS, max_alloc=4096)
+    r = simulate(cli, tmp_path, acc, mic, LONG_PRESS, max_alloc=1000)           # not even 4 pieces for 48 windows
     assert len(r.M) == 1 and 13_000 <= r.M[0] <= 14_000
     assert r.phases() == []                                       # still waiting for calibration, no phase change
     assert r.rising_edges(2, 13_000, 14_300) == 3                 # the red 'cannot do it' flashes
+
+
+def test_a_calibration_with_room_for_only_48_windows_still_finishes_and_works(cli, tmp_path):
+    acc, mic = signal()
+    r = simulate(cli, tmp_path, acc, mic, STANDARD_SCRIPT, max_alloc=1500)
+    assert r.phases() == [CAL_OFF, CAL_WAIT_ON, CAL_ON, RUN]
+    d = r.D[0]
+    assert d["va"] >= 1 and d["vm"] >= 1                         # at least FAIR on both channels
+    assert [s for _, s in r.events()][:3] == ["R", "S", "R"]
+
+
+def test_the_button_events_are_reported_once_each(cli, tmp_path):
+    acc, mic = signal(schedule=SHORT_RUN)
+    r = simulate(cli, tmp_path, acc, mic, LONG_PRESS + "20000 down\n23500 up\n")
+    assert [e for _, e in r.B] == ["K", "X"] and r.phases()[:2] == [CAL_OFF, UNCAL]

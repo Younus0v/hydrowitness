@@ -108,13 +108,78 @@
     }
    },
    "counts_as_pump_evidence": false
+  },
+  {
+   "id": "2026-10-28-bench-mpu-probe-NB",
+   "purpose": "bench",
+   "date": "2026-10-28",
+   "board": "ESP32-S development board (ESP-32S module), breadboard, as in the teammate's photo of 28 Oct",
+   "pump": "",
+   "mounting": "",
+   "source": "serial text pasted by the hardware teammate through the team lead: the output of the mpu command and five S, lines, with the W, lines printed between them; one photo of the breadboard",
+   "problems": [],
+   "observations": {
+    "boots": [],
+    "warnings": [
+     "accelerometer sample rate is 3350.4 Hz, not 1000: the mains hum bands may sit slightly off (see README)",
+     "calibration could not start: not enough memory (free 67768 bytes, largest piece 36852). Restart the node and try again",
+     "calibration could not start: not enough memory (free 68752 bytes, largest piece 36852). Restart the node and try again"
+    ],
+    "fatal": [],
+    "status_lines": 5,
+    "last_status": {
+     "phase": "0",
+     "state": "U",
+     "conf": "200",
+     "acc": "U",
+     "mic": "U",
+     "verdict_acc": "0",
+     "verdict_mic": "0",
+     "offline": "1",
+     "mains": "1",
+     "acc_rate": "999.3",
+     "acc_overflows": "0",
+     "i2c_errs": "0",
+     "mic_errs": "0",
+     "epochs": "700",
+     "sent": "0",
+     "dropped": "16",
+     "rejected": "0",
+     "heap": "67768",
+     "rssi": "-68",
+     "time": "1",
+     "heap_max": "36852",
+     "acc_cfg": "1",
+     "acc_who": "0x72"
+    }
+   },
+   "windows": {
+    "labelled": 0,
+    "unlabelled": 0,
+    "damaged": 0,
+    "channels": {
+     "acc": {
+      "running_windows": 0,
+      "stopped_windows": 0,
+      "running_runs": 0,
+      "stopped_runs": 0
+     },
+     "mic": {
+      "running_windows": 0,
+      "stopped_windows": 0,
+      "running_runs": 0,
+      "stopped_runs": 0
+     }
+    }
+   },
+   "counts_as_pump_evidence": false
   }
  ],
  "counted": {
-  "bench": 2,
+  "bench": 3,
   "development": 0,
   "evaluation": 0
  },
  "heldout": null,
- "headline": "No measurements from a real pump have been supplied. Every number in results/ comes from a simulated plant and simulated Witness Nodes. The firmware has booted on a real board (2 bench logs, no pump); that is the only real-hardware evidence so far."
+ "headline": "No measurements from a real pump have been supplied. Every number in results/ comes from a simulated plant and simulated Witness Nodes. The firmware has booted on a real board (3 bench logs, no pump); that is the only real-hardware evidence so far."
 }

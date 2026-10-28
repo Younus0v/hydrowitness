@@ -1,0 +1,16 @@
+W,accelerometer sample rate is 3350.4 Hz, not 1000: the mains hum bands may sit slightly off (see README)
+I,mpu probe requested, results follow within a second
+I,mpu probe: WHO_AM_I 0x72 (a genuine MPU-6050 gives 0x68), I2C clock 400000 Hz
+I,mpu probe: SMPLRT_DIV 0x00 CONFIG 0x01 GYRO_CONFIG 0x00 ACCEL_CONFIG 0x00 FIFO_EN 0x08 USER_CTRL 0x40 PWR_MGMT_1 0x01
+I,mpu probe: acceleration x 0.038 y -0.011 z 1.158 g, total 1.159 g (about 1.000 when the board is still)
+I,mpu probe: 200 reads of WHO_AM_I, 0 failed
+I,mpu probe: setting 0 (no low-pass, 8 kHz base divided by 8): FIFO overflowed within 100 ms, faster than 1700 Hz
+I,mpu probe: setting 1 (184 Hz low-pass, 1 kHz base divided by 1): 940 Hz
+I,mpu probe done
+W,calibration could not start: not enough memory (free 67768 bytes, largest piece 36852). Restart the node and try again
+S,phase=0,state=U,conf=200,acc=U,mic=U,verdict_acc=0,verdict_mic=0,offline=1,mains=1,acc_rate=999.1,acc_overflows=0,i2c_errs=0,mic_errs=0,epochs=435,sent=0,dropped=3,rejected=0,heap=67768,rssi=-66,time=1,heap_max=36852,acc_cfg=1,acc_who=0x72
+S,phase=0,state=U,conf=200,acc=U,mic=U,verdict_acc=0,verdict_mic=0,offline=1,mains=1,acc_rate=999.4,acc_overflows=0,i2c_errs=0,mic_errs=0,epochs=465,sent=0,dropped=4,rejected=0,heap=67768,rssi=-64,time=1,heap_max=36852,acc_cfg=1,acc_who=0x72
+S,phase=0,state=U,conf=200,acc=U,mic=U,verdict_acc=0,verdict_mic=0,offline=1,mains=1,acc_rate=999.0,acc_overflows=0,i2c_errs=0,mic_errs=0,epochs=583,sent=0,dropped=10,rejected=0,heap=67768,rssi=-72,time=1,heap_max=36852,acc_cfg=1,acc_who=0x72
+S,phase=0,state=U,conf=200,acc=U,mic=U,verdict_acc=0,verdict_mic=0,offline=1,mains=1,acc_rate=999.2,acc_overflows=0,i2c_errs=0,mic_errs=0,epochs=644,sent=0,dropped=13,rejected=0,heap=67768,rssi=-65,time=1,heap_max=36852,acc_cfg=1,acc_who=0x72
+W,calibration could not start: not enough memory (free 68752 bytes, largest piece 36852). Restart the node and try again
+S,phase=0,state=U,conf=200,acc=U,mic=U,verdict_acc=0,verdict_mic=0,offline=1,mains=1,acc_rate=999.3,acc_overflows=0,i2c_errs=0,mic_errs=0,epochs=700,sent=0,dropped=16,rejected=0,heap=67768,rssi=-68,time=1,heap_max=36852,acc_cfg=1,acc_who=0x72

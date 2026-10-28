@@ -16,6 +16,7 @@
 //   P now phase                                              whenever the phase changes
 //   D now va vm acc_quality mic_quality acc_mu0 mic_mu0      whenever the stored models changed
 //   M now                                                    a calibration could not start: not enough memory
+//   B now K|X                                                calibration started (K) or cancelled (X) by a button hold
 //   X phase usable_acc usable_mic                            after rebuilding from the exported flash image
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,8 +24,8 @@
 #include <string>
 #include <vector>
 
-// HW_MAX_ALLOC (environment, bytes): the largest single block the pretend heap will give. The first real board had 68 kB
-// free in total but no piece of 31 kB, so the calibration memory could not be had in one block.
+// HW_MAX_ALLOC (environment, bytes): the largest single block the pretend heap will give. On the first real board only about
+// 31 kB of usable memory was free, too little for the 31 kB the calibration used to ask for.
 static size_t g_max_alloc = (size_t)-1;
 static void* limited_malloc(size_t n) { return n > g_max_alloc ? nullptr : malloc(n); }
 #define HW_CAL_MALLOC limited_malloc
@@ -119,6 +120,7 @@ int main(int argc, char** argv) {
            out.dec.cm, out.dec.event ? 1 : 0, out.acc_window ? 1 : 0, out.mic_window ? 1 : 0, out.za, out.zm);
     if (logic.phase() != last_phase) { last_phase = logic.phase(); printf("P %u %d\n", now, (int)last_phase); }
     if (logic.take_cal_nomem()) printf("M %u\n", now);
+    if (const char ev = logic.take_button_event()) printf("B %u %c\n", now, ev);
     if (logic.take_dirty()) {
       printf("D %u %d %d %.4f %.4f %.4f %.4f\n", now, (int)logic.verdict_acc(), (int)logic.verdict_mic(),
              logic.last_cal_acc().quality, logic.last_cal_mic().quality, logic.acc_model().mu_r[0],

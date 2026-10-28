@@ -43,6 +43,7 @@ struct EspClass {
   String getSketchMD5() { return String(); }
   uint32_t getFreeHeap() { return 0; }
   uint32_t getMaxAllocHeap() { return 0; }
+  uint32_t getMinFreeHeap() { return 0; }
   void restart() {}
 };
 extern EspClass ESP;

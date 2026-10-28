@@ -28,6 +28,7 @@
 #include <WiFiClientSecure.h>
 #endif
 #include "driver/i2s_std.h"
+#include "esp_heap_caps.h"
 
 #include "hw_node.h"
 
@@ -485,8 +486,16 @@ static void sense_task(void*) {
     unlock();
     epochs_done++;
     lock(); const bool no_mem = logic.take_cal_nomem(); unlock();
-    if (no_mem) Serial.printf("W,calibration could not start: not enough memory (free %u bytes, largest piece %u). Restart the node and try again\n",
-                              (unsigned)ESP.getFreeHeap(), (unsigned)ESP.getMaxAllocHeap());
+    if (no_mem) Serial.printf("W,calibration could not start: it needs 4 pieces of at least %u bytes, usable memory free is %u bytes, largest piece %u\n",
+                              (unsigned)(sizeof(uint16_t) * hw::CAL_SMALLEST_CAP * hw::NFEAT), (unsigned)heap_caps_get_free_size(MALLOC_CAP_8BIT),
+                              (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT));
+    lock(); const char bev = logic.take_button_event(); unlock();
+    if (bev == 'K') {
+      lock(); const int cap = logic.cal_capacity(); unlock();
+      Serial.printf("I,button: held 3 s, calibration started: recording the STOPPED baseline, keep the pump off (room for %d windows per baseline, usable memory free now %u)\n",
+                    cap, (unsigned)heap_caps_get_free_size(MALLOC_CAP_8BIT));
+    }
+    else if (bev == 'X') Serial.println("I,button: held 3 s, calibration cancelled");
 
     if (dump_on) {
       const float* fa = logic.last_acc_features();
@@ -522,10 +531,12 @@ static void print_status() {
   unlock();
   Serial.printf("S,phase=%d,state=%c,conf=%d,acc=%c,mic=%c,verdict_acc=%d,verdict_mic=%d,offline=%d,mains=%d,", phase, d.st, d.c,
                 d.ca, d.cm, va, vm, off ? 1 : 0, logic.mains_ok() ? 1 : 0);
-  Serial.printf("acc_rate=%.1f,acc_overflows=%lu,i2c_errs=%lu,mic_errs=%lu,epochs=%lu,sent=%lu,dropped=%lu,rejected=%lu,heap=%u,rssi=%d,time=%d,heap_max=%u,acc_cfg=%d,acc_who=0x%02x\n",
+  Serial.printf("acc_rate=%.1f,acc_overflows=%lu,i2c_errs=%lu,mic_errs=%lu,epochs=%lu,sent=%lu,dropped=%lu,rejected=%lu,heap=%u,rssi=%d,time=%d,heap_max=%u,heap_min=%u,mem8=%u,mem8_max=%u,mem8_min=%u,acc_cfg=%d,acc_who=0x%02x\n",
                 rate, (unsigned long)acc_overflows, (unsigned long)acc_i2c_errs, (unsigned long)mic_errs, (unsigned long)epochs_done,
                 (unsigned long)msgs_sent, (unsigned long)msgs_dropped, (unsigned long)msgs_rejected, (unsigned)ESP.getFreeHeap(),
-                WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : 0, epoch_ms() ? 1 : 0, (unsigned)ESP.getMaxAllocHeap(), mpu_cfg_idx, mpu_who);
+                WiFi.status() == WL_CONNECTED ? WiFi.RSSI() : 0, epoch_ms() ? 1 : 0, (unsigned)ESP.getMaxAllocHeap(), (unsigned)ESP.getMinFreeHeap(),
+                (unsigned)heap_caps_get_free_size(MALLOC_CAP_8BIT), (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT),
+                (unsigned)heap_caps_get_minimum_free_size(MALLOC_CAP_8BIT), mpu_cfg_idx, mpu_who);
   if (rate > 0 && (rate < 990 || rate > 1010))
     Serial.printf("W,accelerometer sample rate is %.1f Hz, not 1000: the mains hum bands may sit slightly off (see README)\n", rate);
 }
@@ -573,6 +584,9 @@ void setup() {
   Serial.printf("I,Witness Node %s boot %lu firmware %s mains %d Hz, %s\n", NODE_ID, (unsigned long)boot_count, fw_hash, MAINS_HZ,
                 have ? "calibration found" : "not calibrated: hold the button 3 s with the pump OFF");
 
+  Serial.printf("I,memory: usable (8-bit) free %u bytes, largest piece %u; all internal free %u (includes instruction RAM that malloc cannot use)\n",
+                (unsigned)heap_caps_get_free_size(MALLOC_CAP_8BIT), (unsigned)heap_caps_get_largest_free_block(MALLOC_CAP_8BIT),
+                (unsigned)ESP.getFreeHeap());
   mpu_present = mpu_init(true);
   if (!mpu_present) Serial.println("W,accelerometer not usable: running on the microphone alone");
   mic_present = mic_init();

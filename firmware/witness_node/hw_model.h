@@ -44,15 +44,68 @@ struct Model {
   }
 };
 
+// ---- 16-bit storage for the install recordings: IEEE half precision, relative error under 0.05 percent. Four sets of 128 windows
+// of 15 numbers take 15 kB this way instead of 30 kB, which matters because the ESP32 has only about 31 kB of ordinary memory
+// free once Wi-Fi is running (see UPGRADE_NOTES). Values beyond +-65504 saturate; NaN and infinity pass through unchanged.
+inline uint16_t float_to_half(float f) {
+  uint32_t x;
+  memcpy(&x, &f, 4);
+  const uint32_t sign = (x >> 16) & 0x8000u, m = x & 0x7fffffu;
+  const uint32_t e = (x >> 23) & 0xffu;
+  if (e == 0xffu) return (uint16_t)(sign | 0x7c00u | (m ? 0x200u : 0u));
+  const int exp = (int)e - 127 + 15;
+  if (exp >= 31) return (uint16_t)(sign | 0x7bffu);
+  if (exp <= 0) {                                              // zero or a subnormal half
+    if (exp < -10) return (uint16_t)sign;
+    const uint32_t mm = m | 0x800000u;
+    const int shift = 14 - exp;
+    uint32_t h = mm >> shift;
+    const uint32_t rem = mm & ((1u << shift) - 1u), mid = 1u << (shift - 1);
+    if (rem > mid || (rem == mid && (h & 1u))) h++;
+    return (uint16_t)(sign | h);
+  }
+  uint32_t h = ((uint32_t)exp << 10) | (m >> 13);
+  const uint32_t rem = m & 0x1fffu;
+  if (rem > 0x1000u || (rem == 0x1000u && (h & 1u))) h++;
+  if (h >= 0x7c00u) h = 0x7bffu;                               // rounded past the largest half: saturate
+  return (uint16_t)(sign | h);
+}
+
+inline float half_to_float(uint16_t h) {
+  const uint32_t sign = (uint32_t)(h & 0x8000u) << 16;
+  uint32_t e = (h >> 10) & 0x1fu, m = h & 0x3ffu, x;
+  if (e == 0) {
+    if (m == 0) x = sign;
+    else {                                                     // subnormal half: normalise
+      int k = 0;
+      while (!(m & 0x400u)) { m <<= 1; k++; }
+      m &= 0x3ffu;
+      x = sign | ((uint32_t)(127 - 15 - k + 1) << 23) | (m << 13);
+    }
+  } else if (e == 31) {
+    x = sign | 0x7f800000u | (m << 13);
+  } else {
+    x = sign | ((e - 15 + 127) << 23) | (m << 13);
+  }
+  float f;
+  memcpy(&f, &x, 4);
+  return f;
+}
+
+// Rows of NFEAT features, kept either as floats or as halves; fit and calibrate read them through `at(row, feature)`.
+struct FloatRows { const float* p; float at(int r, int i) const { return p[r * NFEAT + i]; } };
+struct HalfRows { const uint16_t* p; float at(int r, int i) const { return half_to_float(p[r * NFEAT + i]); } };
+
 inline float variance_floor(int i) { return i == 13 ? FLUX_FLOOR : i == 14 ? CREST_FLOOR : DB_FLOOR; }
 
 // R and S are row-major arrays of nr / ns feature vectors.
-inline void fit(const float* R, int nr, const float* S, int ns, Model& out) {
+template <class RR, class SS>
+inline void fit_rows(const RR& R, int nr, const SS& S, int ns, Model& out) {
   memset(&out, 0, sizeof(out));
   for (int i = 0; i < NFEAT; i++) {
     double sr = 0, ss = 0, qr = 0, qs = 0;
-    for (int r = 0; r < nr; r++) { const double v = R[r * NFEAT + i]; sr += v; qr += v * v; }
-    for (int s = 0; s < ns; s++) { const double v = S[s * NFEAT + i]; ss += v; qs += v * v; }
+    for (int r = 0; r < nr; r++) { const double v = R.at(r, i); sr += v; qr += v * v; }
+    for (int s = 0; s < ns; s++) { const double v = S.at(s, i); ss += v; qs += v * v; }
     const double mr = nr ? sr / nr : 0, ms = ns ? ss / ns : 0;
     const double vr = nr ? qr / nr - mr * mr : 0, vs = ns ? qs / ns - ms * ms : 0;
     out.mu_r[i] = (float)mr;
@@ -61,6 +114,7 @@ inline void fit(const float* R, int nr, const float* S, int ns, Model& out) {
   }
   out.derive();
 }
+inline void fit(const float* R, int nr, const float* S, int ns, Model& out) { fit_rows(FloatRows{R}, nr, FloatRows{S}, ns, out); }
 
 struct CalResult {
   float acc_r, acc_s, quality;
@@ -68,23 +122,28 @@ struct CalResult {
 };
 
 // Fit on the first 60% of each class, test on the last 40%, then refit on all windows.
-inline CalResult calibrate(const float* R, int nr, const float* S, int ns, Model& out) {
+template <class RR, class SS>
+inline CalResult calibrate_rows(const RR& R, int nr, const SS& S, int ns, Model& out) {
   CalResult res = {0, 0, 0, POOR};
   int fr = (int)(nr * FIT_FRACTION), fs = (int)(ns * FIT_FRACTION);
   if (fr < 2) fr = 2;
   if (fs < 2) fs = 2;
   if (nr < 4 || ns < 4) { memset(&out, 0, sizeof(out)); return res; }
   Model trial;
-  fit(R, fr, S, fs, trial);
+  fit_rows(R, fr, S, fs, trial);
   int okr = 0, oks = 0;
-  for (int i = fr; i < nr; i++) if (trial.z(R + i * NFEAT) > 0) okr++;
-  for (int i = fs; i < ns; i++) if (trial.z(S + i * NFEAT) < 0) oks++;
+  float row[NFEAT];
+  for (int i = fr; i < nr; i++) { for (int j = 0; j < NFEAT; j++) row[j] = R.at(i, j); if (trial.z(row) > 0) okr++; }
+  for (int i = fs; i < ns; i++) { for (int j = 0; j < NFEAT; j++) row[j] = S.at(i, j); if (trial.z(row) < 0) oks++; }
   res.acc_r = nr > fr ? (float)okr / (nr - fr) : 0.f;
   res.acc_s = ns > fs ? (float)oks / (ns - fs) : 0.f;
   res.quality = res.acc_r < res.acc_s ? res.acc_r : res.acc_s;
   res.verdict = res.quality >= GOOD_ACCURACY ? GOOD : res.quality >= FAIR_ACCURACY ? FAIR : POOR;
-  fit(R, nr, S, ns, out);
+  fit_rows(R, nr, S, ns, out);
   return res;
+}
+inline CalResult calibrate(const float* R, int nr, const float* S, int ns, Model& out) {
+  return calibrate_rows(FloatRows{R}, nr, FloatRows{S}, ns, out);
 }
 
 // Slow drift: only called after an operator confirms the state, so the node never trains itself on a

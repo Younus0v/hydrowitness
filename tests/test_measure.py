@@ -218,3 +218,10 @@ def test_the_committed_bench_boot_log_is_what_the_board_printed_and_claims_no_pu
     assert bench["observations"]["fatal"] == [] and bench["windows"]["labelled"] == 0
     assert rep["counted"]["development"] == 0 and rep["counted"]["evaluation"] == 0
     assert rep["headline"].startswith("No measurements from a real pump have been supplied.")
+
+
+def test_the_raw_serial_recordings_are_not_hidden_by_gitignore():
+    """`*.log` is ignored so editor logs stay out of the repo; a session's serial.log is the evidence and must not be."""
+    lines = [ln.strip() for ln in (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()]
+    assert "*.log" in lines and "!measurements/**/serial.log" in lines
+    assert lines.index("!measurements/**/serial.log") > lines.index("*.log")        # a later rule wins

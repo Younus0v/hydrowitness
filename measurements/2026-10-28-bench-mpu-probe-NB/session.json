@@ -1,0 +1,15 @@
+{
+ "schema": 1,
+ "id": "2026-10-28-bench-mpu-probe-NB",
+ "purpose": "bench",
+ "date": "2026-10-28",
+ "operator": "hardware teammate (relayed by the team lead)",
+ "board": "ESP32-S development board (ESP-32S module), breadboard, as in the teammate's photo of 28 Oct",
+ "accelerometer": "same GY-521 style module as on 26 Oct; WHO_AM_I 0x72; teammate re-checked the pins against the wiring guide and found them as expected",
+ "microphone": "round I2S microphone board (SCK, WS, L/R, SD, VDD, GND) on the breadboard; mic_errs=0",
+ "buzzer": "active buzzer module on GPIO27",
+ "pump": "",
+ "mounting": "",
+ "source": "serial text pasted by the hardware teammate through the team lead: the output of the mpu command and five S, lines, with the W, lines printed between them; one photo of the breadboard",
+ "notes": "First run of the firmware with the accelerometer rate check (the 26 Oct version of witness_node.ino and hw_node.h). No pump, not calibrated. ACCELEROMETER: the mpu probe shows the first setting (no low-pass, divider 7) overflows the FIFO within 100 ms, so the chip runs faster than 1.7 kHz and ignores the divider; the second setting (184 Hz low-pass, 1 kHz base, divider 0) measured 940 Hz in the 100 ms probe and was chosen (acc_cfg=1). Over the five status lines acc_rate was 999.0 to 999.4 Hz, acc_overflows 0, i2c_errs 0, epochs 435 to 700 (the interval between lines was not given). A 200-read bus test had 0 failures. The probe's acceleration reading was 1.159 g in total while the board was reported lying still: 16 percent above 1 g, so this clone's scale differs from the 16384 LSB per g the sketch assumes, or the board was not still; the node calibrates per unit, so this is noted, not acted on. The very first pasted line (3350.4 Hz) has the old firmware's wording and was presumably printed before reflashing. MICROPHONE: mic_errs 0 in all lines. CALIBRATION: holding the button again did not start calibration. The firmware printed 'calibration could not start: not enough memory' twice, with 67768 and 68752 bytes free and the largest free piece 36852 bytes. The earlier firmware asked for one 30720-byte block and this one for four of 7680 bytes; both looked as if they fit in a 36852-byte piece (but see the correction at the end of these notes). The teammate reports the lights and buzzer did the same as on 26 Oct. WI-FI: rssi -64 to -72, time=1, sent=0, dropped rising to 16: no server reachable. [Correction, 28 Oct 2026, written after the 28 Oct analysis: the 'free memory' and 'largest piece' figures printed by the firmware (heap, heap_max) count instruction RAM that malloc cannot use. The firmware built from this repository leaves 37,940 bytes of free instruction RAM (0x400A0000 minus the end of instruction RAM, read from the build), which matches the 36,852-byte 'largest piece'. So the memory the calibration could really use was about 30,916 bytes (67,768 minus 36,852), shared with Wi-Fi, and the 30,720-byte request could not be met. The explanation that the memory was enough, written in the first version of this note and again earlier on 28 Oct, was wrong.]"
+}
