@@ -145,7 +145,8 @@ def hardware_status() -> str:
     if c["development"] + c["evaluation"] == 0:
         if c["bench"]:
             return ("The firmware has booted on a real ESP32 development board. It has not yet been recorded on a real pump, so we have no "
-                    "real measurement of how well it tells a pump's on from its off.")
+                    "real measurement of how well it tells a pump's on from its off. Our team also reports an unrecorded trial on a pump "
+                    "owned by someone outside the team, and says it worked. We do not count that as a result, because there is no recording of it.")
         return "The firmware has not yet run on a real board, and we have no real measurement of a pump."
     return (f"We have {c['development']} development and {c['evaluation']} evaluation recording(s) from a real pump. "
             "The measurement report lists exactly what they show, and what they do not.")

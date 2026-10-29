@@ -305,6 +305,7 @@ def test_hardware_claims_follow_the_measurement_report(tmp_path, monkeypatch):
     assert c["development"] == 0 and c["evaluation"] == 0 and c["bench"] >= 1          # what we have today
     page = _text(HTML["technology"])
     assert "has booted on a real ESP32 development board" in page and "not yet been recorded on a real pump" in page
+    assert "unrecorded trial" in page and "We do not count that as a result" in page      # a reported trial is never counted as one
     for name in ("index", "how-it-works", "technology", "demo", "team", "contact"):
         assert "never run on a real" not in HTML[name] and "has not yet run on a real ESP32" not in HTML[name], name
     b = _builder()
