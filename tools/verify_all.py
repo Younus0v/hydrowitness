@@ -54,6 +54,8 @@ def main(argv=None) -> int:
             cmd += ["-n", "4"]
         else:
             notes.append("pytest-xdist is not installed, so the tests run on one process and are slower (pip install pytest-xdist).")
+        if not have("wntr") or not have("six"):
+            notes.append("wntr (or six) is not importable, so the EPANET validation tests were SKIPPED (pip install -r requirements.txt).")
         if not have("hypothesis"):
             notes.append("hypothesis is not installed, so the property-based tests were SKIPPED (pip install hypothesis).")
         run("tests", cmd, results)

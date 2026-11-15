@@ -1,8 +1,13 @@
 """A small, seeded run of validation V1 so the harness itself stays honest. The full 310-scenario run is
 `python3 -m hydrowitness.sim.wntr_validation` and its saved output is in results/."""
+import os
+
 import pytest
 
-pytest.importorskip("wntr")
+if os.environ.get("CI"):
+    import wntr  # noqa: F401  # on a CI server a missing wntr must fail loudly, not hide the validation tests by skipping them
+else:
+    pytest.importorskip("wntr")
 
 from hydrowitness.sim import wntr_validation as V  # noqa: E402
 

@@ -107,3 +107,19 @@ def show(k: int, n: int, digits: int = 1) -> str:
     """'0 of 200 (0.0%, 95% CI 0.0% to 1.8%)'"""
     lo, hi = clopper_pearson(k, n)
     return f"{k} of {n} ({pct(k / n, digits) if n else 'n/a'}, 95% CI {pct(lo, digits)} to {pct(hi, digits)})"
+
+
+def json_close(a, b, rel: float = 1e-9, abs_tol: float = 1e-12) -> bool:
+    """True if two parsed JSON values are the same, allowing floats to differ in their last digits.
+
+    The same code run under two Python versions (or on two operating systems) can give a float that differs in the 16th digit,
+    so a saved report must not be called out of date for that. Everything that is not a float must match exactly."""
+    if isinstance(a, bool) or isinstance(b, bool):
+        return a is b
+    if isinstance(a, float) or isinstance(b, float):
+        return isinstance(a, (int, float)) and isinstance(b, (int, float)) and math.isclose(a, b, rel_tol=rel, abs_tol=abs_tol)
+    if isinstance(a, dict) and isinstance(b, dict):
+        return a.keys() == b.keys() and all(json_close(a[k], b[k], rel, abs_tol) for k in a)
+    if isinstance(a, list) and isinstance(b, list):
+        return len(a) == len(b) and all(json_close(x, y, rel, abs_tol) for x, y in zip(a, b))
+    return a == b

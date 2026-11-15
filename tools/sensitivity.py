@@ -274,8 +274,11 @@ def main(argv=None) -> int:
     s = build()
     js, md = json.dumps(s, indent=1, sort_keys=True) + "\n", markdown(s)
     if a.check:
-        ok = (RES / "sensitivity.json").exists() and (RES / "sensitivity.json").read_text(encoding="utf-8") == js and \
-             (RES / "sensitivity.md").read_text(encoding="utf-8") == md
+        ok = (RES / "sensitivity.json").exists() and (RES / "sensitivity.md").exists()
+        if ok:
+            # floats may differ in their last digits between Python versions; everything else must match exactly
+            ok = stats.json_close(json.loads((RES / "sensitivity.json").read_text(encoding="utf-8")), json.loads(js)) and \
+                (RES / "sensitivity.md").read_text(encoding="utf-8") == md
         print("results/sensitivity.* is up to date" if ok else "results/sensitivity.* is out of date. Run: python3 tools/sensitivity.py")
         return 0 if ok else 1
     (RES / "sensitivity.json").write_text(js, encoding="utf-8")

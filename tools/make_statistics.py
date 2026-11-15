@@ -191,7 +191,11 @@ def main(argv=None) -> int:
     if a.check:
         old_js = (RES / "statistics.json").read_text(encoding="utf-8") if (RES / "statistics.json").exists() else ""
         old_md = (RES / "statistics.md").read_text(encoding="utf-8") if (RES / "statistics.md").exists() else ""
-        if old_js != js or old_md != md:
+        try:
+            same_js = stats.json_close(json.loads(old_js), json.loads(js))
+        except ValueError:
+            same_js = False
+        if not same_js or old_md != md:
             print("results/statistics.* is out of date. Run: python3 tools/make_statistics.py")
             return 1
         print("results/statistics.* is up to date")

@@ -115,3 +115,15 @@ def test_an_absurd_or_missing_number_is_not_a_reading():
     capped = compute_clock(p, NOW, LevelReading(1e9, NOW, "scada"))
     full = compute_clock(p, NOW, LevelReading(p.tank_height_ft, NOW, "scada"))
     assert capped.ok and capped.worst_min == pytest.approx(full.worst_min)    # a tank cannot hold more than its height
+
+
+def test_a_saved_report_is_not_out_of_date_because_of_a_last_digit():
+    """Python versions can differ in the 16th digit of a float; that must not fail the check, while any real change must."""
+    a = {"lo": 0.6915028921812354, "n": 200, "name": "x", "rows": [{"v": 1.0}, True]}
+    assert stats.json_close(a, {"lo": 0.6915028921812356, "n": 200, "name": "x", "rows": [{"v": 1.0 + 1e-15}, True]})
+    assert not stats.json_close(a, {**a, "lo": 0.6916})                                # a real change of the number
+    assert not stats.json_close(a, {**a, "n": 201})                                     # integers match exactly
+    assert not stats.json_close(a, {**a, "name": "y"})
+    assert not stats.json_close(a, {**a, "rows": [{"v": 1.0}, False]})                  # booleans are not numbers
+    assert not stats.json_close(a, {k: v for k, v in a.items() if k != "n"})            # a missing key
+    assert not stats.json_close({"x": [1.0]}, {"x": [1.0, 2.0]})                        # a different length

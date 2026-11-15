@@ -2,7 +2,7 @@
 
 What changed, how to check it, and what is still not done. Everything runs locally; no Supabase, no cloud database, no new service.
 
-Run `python3 tools/verify_all.py` (tests, then that the saved reports and the website agree with the results; 477 tests, about 2 to 3 minutes) after copying the files in. The nine-point round below came first; the rigor round (November 2026) is at the end.
+Run `python3 tools/verify_all.py` (tests, then that the saved reports and the website agree with the results; 480 tests, about 2 to 3 minutes) after copying the files in. The nine-point round below came first; the rigor round (November 2026) is at the end.
 
 ## What changed
 
@@ -95,6 +95,7 @@ Aim: every number we say in public has a source anyone can re-run, an interval o
 * The first soak run showed one connection failure per Witness Node at 1x. The cause was the test client reusing a connection the server had closed after its idle timeout, not a server fault; a real node opens a new connection for each message. The test now does the same, and the second run had none.
 * `hypothesis` and `pytest-xdist` are now in `requirements.txt`. Without hypothesis the property tests are skipped and say so.
 * Regenerating the demo recordings changed all 13 files under `site/demo/`: the only difference is the new `setup_allowance_ft` field.
+* The first GitHub run failed on Python 3.11 for two reasons, both found by running the same checks on 3.11 here. (1) The saved-report check compared floats as exact text, and 3.11 and 3.13 differ in the 16th digit (0.6915028921812354 against ...56); it now compares numbers with a tiny tolerance and everything else exactly (`stats.json_close`). (2) `wntr` imports `six` without declaring it, so on a clean install the EPANET validation tests were silently skipped; `six` is now in `requirements.txt`, and on a CI server a missing `wntr` fails loudly instead of skipping. The complete `tools/verify_all.py` now passes on both 3.11 and 3.13.
 * Deep fuzz run: `HW_FUZZ_EXAMPLES=2500 python3 -m pytest tests/test_properties.py -q` passed after the fixes.
 
 ## Still not done (only the team can do these)

@@ -30,7 +30,7 @@ Mac/Linux one was run from a fresh copy and the server, token check and sign-in 
 
 | part | status |
 |---|---|
-| server: Time-to-Trouble clock, seven consistency rules, trust engine, node verification, evidence log, playbook, private alerts with a retry queue, API, dashboard with an offline Emergency view | built; 477 automated tests pass, including property-based fuzz tests |
+| server: Time-to-Trouble clock, seven consistency rules, trust engine, node verification, evidence log, playbook, private alerts with a retry queue, API, dashboard with an offline Emergency view | built; 480 automated tests pass, including property-based fuzz tests |
 | simulated plant, simulated Witness Node, six attack drills, false-alarm runs | built; results below |
 | clock against EPANET hydraulics (310 randomized systems) | done; results below |
 | exact confidence intervals, a setup-error sensitivity analysis, a long false-alarm study (400 simulated site-days) | done; `results/statistics.md`, `results/sensitivity.md`, `results/long_normal.md` |
@@ -51,7 +51,7 @@ To host it, see `site/README.md` (Vercel with Root Directory `site`, or Netlify 
 
 ```
 pip install -r requirements.txt
-python3 -m pytest tests -q -n 4                              # 477 tests, about 1 to 3 minutes (needs g++ for the firmware tests)
+python3 -m pytest tests -q -n 4                              # 480 tests, about 1 to 3 minutes (needs g++ for the firmware tests)
 python3 tools/verify_all.py                                  # one command: tests, and that the reports and website match the saved results
 HYDROWITNESS_TOKEN=choose-a-long-random-token uvicorn hydrowitness.api:app --port 8000
 ```
@@ -129,7 +129,7 @@ firmware/witness_node/   Arduino sketch plus portable C++ core; firmware/host_te
 training/                node_reference.py (the one definition of what the node computes), train_classifier.py (the V3 analysis), synth.py,
                          measure.py (record and report real measurement sessions: bench, development, evaluation)
 measurements/            one folder per real recording session; today only a bench boot log, no pump
-tests/                   477 tests, including tests/test_properties.py (Hypothesis fuzzing; HW_FUZZ_EXAMPLES=3000 for a deep run)
+tests/                   480 tests, including tests/test_properties.py (Hypothesis fuzzing; HW_FUZZ_EXAMPLES=3000 for a deep run)
 results/                 saved validation, evaluation, statistics, sensitivity, long-study and measurement output
 docs/                    INTERFACES.md, WIRING.md, HARDWARE_STAGE.md, and the evidence documents listed above
 .github/workflows/       CI: runs tools/verify_all.py on every push
