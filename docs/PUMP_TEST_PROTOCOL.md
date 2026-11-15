@@ -24,6 +24,11 @@ Use `training/measure.py` (see `docs/HARDWARE_STAGE.md`, stage 8). Every session
 
 * Minimum for any claim: **2 different pumps** (or one pump and one motor of a different type), or one pump on **3 different days**. One pump on one afternoon is a demonstration, not a finding.
 * In each session: at least **3 off/on cycles**, each state held **at least 5 minutes**, labelled with the `label S` and `label R` commands, with `label -` before and after every start, stop or touch of the box.
+* The commands, once per session (`pip install pyserial` first; use your own port name, for example `COM5`):
+  1. `python3 training/measure.py new 2026-11-15-pump-1 --purpose development --pump "make, hp, type" --mounting "where and how it is attached" --operator "your name" --board "ESP32-S" --accelerometer "MPU6050" --microphone "INMP441"`
+  2. `python3 training/measure.py capture 2026-11-15-pump-1 --port COM5`
+  3. While it runs, type then Enter: `s` when the pump is off and quiet, `r` when it is steady and running, `-` before every start, stop or touch of the box, `n <text>` for a note, `q` to finish. `dump on` is sent for you after 5 seconds; if no lines starting with `F` appear, type `dump on`.
+  4. After the last session: `python3 training/measure.py report`.
 * Record the operator's note of the real start and stop times in `events.csv` (a stopwatch is fine). The node's label commands are typed by a person watching the pump, not inferred from the node.
 
 ## 3. What counts as a pass (fixed in advance)

@@ -20,7 +20,8 @@ A session has one purpose, fixed before it is recorded:
                  produced ("heldout"). `train` refuses them.
 
 While capturing, type a line and press Enter:  r (pump is running: sends `label R`), s (pump is stopped: `label S`),
-- (starting, stopping or touching the box: `label -`), n <text> (a note), q (quit).
+- (starting, stopping or touching the box: `label -`), n <text> (a note), dump on / dump off / status (passed to the node), q (quit).
+The capture sends `dump on` for you 5 seconds after the port opens, because opening a port normally restarts the board.
 """
 from __future__ import annotations
 
@@ -141,6 +142,12 @@ class Capture:
             else:
                 self.send(f"label {LABEL_KEYS[key]}")
                 self.event("label", LABEL_KEYS[key])
+        elif key in ("dump on", "dump off", "status"):
+            if self.send is None:
+                self.event("command_not_sent", f"{key}: no serial port, so the node was not told")
+            else:
+                self.send(key)
+                self.event("command", key)
         elif key.startswith("n ") or key.startswith("note "):
             self.event("note", cmd.split(" ", 1)[1].strip())
         else:
@@ -181,7 +188,14 @@ def capture_port(d: Path, port: str, baud: int = 115200) -> int:  # pragma: no c
 
     t = threading.Thread(target=reader, daemon=True)
     t.start()
-    print(f"recording to {d / 'serial.log'}.  r = pump running, s = pump stopped, - = starting/stopping/touching, n <text> = note, q = quit")
+
+    def start_dump():
+        # Opening the port usually restarts the board. Ask for the feature rows once it has had time to boot (type `dump on` yourself if none appear).
+        cap.on_command("dump on")
+
+    threading.Timer(5.0, start_dump).start()
+    print(f"recording to {d / 'serial.log'}.  r = pump running, s = pump stopped, - = starting/stopping/touching, n <text> = note, q = quit.  "
+          "`dump on` is sent for you after 5 s; if no lines starting with F appear, type  dump on  and press Enter")
     try:
         for cmd in sys.stdin:
             if not cap.on_command(cmd):

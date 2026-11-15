@@ -232,3 +232,21 @@ def test_the_raw_serial_recordings_are_not_hidden_by_gitignore():
     lines = [ln.strip() for ln in (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()]
     assert "*.log" in lines and "!measurements/**/serial.log" in lines
     assert lines.index("!measurements/**/serial.log") > lines.index("*.log")        # a later rule wins
+
+
+def test_dump_and_status_are_passed_to_the_node_and_logged(tmp_path):
+    sent = []
+    cap = M.Capture(tmp_path, send=sent.append)
+    for line in ("dump on", "STATUS", "r", "-", "dump off"):
+        assert cap.on_command(line)
+    cap.close()
+    assert sent == ["dump on", "status", "label R", "label -", "dump off"]
+    events = (tmp_path / "events.csv").read_text(encoding="utf-8")
+    assert "command,dump on" in events and "label,R" in events and "unknown_input" not in events
+
+
+def test_dump_without_a_port_says_the_node_was_not_told(tmp_path):
+    cap = M.Capture(tmp_path)
+    cap.on_command("dump on")
+    cap.close()
+    assert "command_not_sent" in (tmp_path / "events.csv").read_text(encoding="utf-8")
