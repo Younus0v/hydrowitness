@@ -317,3 +317,43 @@ def test_hardware_claims_follow_the_measurement_report(tmp_path, monkeypatch):
     changed["counted"] = {"bench": 0, "development": 0, "evaluation": 0}
     p.write_text(json.dumps(changed))
     assert "has not yet run on a real board" in _text(b.build()["technology.html"])
+
+
+STATS = json.loads((ROOT / "results" / "statistics.json").read_text(encoding="utf-8"))
+
+
+def test_how_sure_are_we_states_intervals_and_its_own_limits():
+    page = _text(HTML["technology"])
+    assert "How sure are we?" in page and "95% interval" in page
+    assert "do not cover the gap between a simulated plant and a real one" in page
+    assert "docs/LIMITATIONS.md" in page and "docs/VALIDATION_MATRIX.md" in page
+    ins = STATS["v1_clock_vs_epanet"]["inside_assumptions"]["unsafe"]
+    assert f"in {ins['k']} of them" in page and f"below {ins['hi']:.1%} with 95% confidence" in page
+    # a zero is never shown without its bound
+    assert f"{STATS['false_alarms']['false_amber']} false amber" in page and "and no further" in page
+
+
+def test_how_sure_are_we_follows_the_statistics_file_not_the_page_source(tmp_path, monkeypatch):
+    b = _builder()
+    changed = json.loads(json.dumps(STATS))
+    changed["false_alarms"]["false_amber"] = 3
+    changed["attacks"]["without_operator_all_scenarios"]["hydrowitness_warned"].update(k=110, lo=0.85, hi=0.96)
+    p = tmp_path / "statistics.json"
+    p.write_text(json.dumps(changed))
+    monkeypatch.setattr(b, "STATISTICS", p)
+    page = _text(b.build()["technology.html"])
+    assert "raised 3 false amber" in page and "110 of 120 (95% interval 85.0% to 96.0%)" in page
+    assert "raised 0 false amber" in _text(HTML["technology"])
+
+
+def test_the_setup_sentence_follows_the_sensitivity_file(tmp_path, monkeypatch):
+    b = _builder()
+    se = json.loads((ROOT / "results" / "sensitivity.json").read_text(encoding="utf-8"))
+    for row in se["monte_carlo"]:
+        if row["setup_allowance_ft"] == 2.0 and row["error_scale"] == 1.0 and "50-100%" in row["label"]:
+            row["optimistic"].update(rate=0.123)
+    p = tmp_path / "sensitivity.json"
+    p.write_text(json.dumps(se))
+    monkeypatch.setattr(b, "SENSITIVITY", p)
+    page = _text(b.build()["technology.html"])
+    assert "cuts that to 12.3%" in page and "our assumptions, not measurements" in page

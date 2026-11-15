@@ -6,7 +6,8 @@
 Each page is a source file in tools/site_src/ made of a few `key: value` lines, a line with `---`, then the page body.
 _layout.html wraps every page in the same header and footer, so the menu and the footer are written once.
 The results table is filled in from results/v2_drills.json, the comparison with a plain alarm panel from results/evaluation.json,
-and the hardware status from results/measurements.json, so none of those numbers or claims can drift from the saved results.
+the hardware status from results/measurements.json, and the "How sure are we?" list from results/statistics.json and
+results/sensitivity.json, so none of those numbers or claims can drift from the saved results.
 Standard library only.
 """
 from __future__ import annotations
@@ -22,6 +23,8 @@ SITE = ROOT / "site"
 V2 = ROOT / "results" / "v2_drills.json"
 EVALUATION = ROOT / "results" / "evaluation.json"
 MEASUREMENTS = ROOT / "results" / "measurements.json"
+STATISTICS = ROOT / "results" / "statistics.json"
+SENSITIVITY = ROOT / "results" / "sensitivity.json"
 
 # The team's public contact address. To change it, edit this line, then run `python tools/build_site.py`.
 EMAIL = "hydrowitness@gmail.com"
@@ -139,6 +142,41 @@ def evaluation_fields() -> dict[str, str]:
     }
 
 
+def _ci_text(c: dict) -> str:
+    return f"{c['k']} of {c['n']} (95% interval {c['lo']:.1%} to {c['hi']:.1%})"
+
+
+def rigor_fields() -> dict[str, str]:
+    """The "How sure are we?" sentences, written from the saved statistics so they cannot drift from the results."""
+    st = json.loads(STATISTICS.read_text(encoding="utf-8"))
+    se = json.loads(SENSITIVITY.read_text(encoding="utf-8"))
+    ins = st["v1_clock_vs_epanet"]["inside_assumptions"]["unsafe"]
+    v1 = (f"The clock against EPANET: on {ins['n']} randomized systems inside the clock's stated assumptions, its worst case promised more time than the "
+          f"simulator's truth in {ins['k']} of them. A sample of {ins['n']} cannot prove the rate is zero: the honest statement is that it is below "
+          f"{ins['hi']:.1%} with 95% confidence.")
+    al = st["attacks"]["without_operator_all_scenarios"]
+    hw, panel, flat = al["hydrowitness_warned"], al["alarm_panel"], al["alarm_panel_flatline"]
+    attacks = (f"Attack runs with nobody walking to the pump: HydroWitness warned in {_ci_text(hw)}; the plain alarm panel in {_ci_text(panel)}; "
+               f"the panel with a flat-line check in {_ci_text(flat)}. Each scenario is one plant and one attack script we wrote, run on different noise seeds, "
+               f"so these runs are less independent than the count suggests, and an attacker we did not think of is not in them.")
+    fa = st["false_alarms"]
+    longs = [s for s in fa["sources"] if s["name"].startswith("long")]
+    assert longs, "results/statistics.json has no long false-alarm study; run tools/long_normal.py and tools/make_statistics.py"
+    lg = longs[0]
+    up = fa["upper_95_per_site_day"]
+    false = (f"False alarms: on {fa['site_days']:g} simulated healthy site-days ({lg['site_days']:g} of them in a long study on seeds the tuning never saw, "
+             f"half on a 30 ft tank that cycles its pumps hard), HydroWitness raised {fa['false_amber']} false amber and {fa['false_red']} false red. "
+             f"That rules out a false warning more often than about once in {1 / max(up['amber'], up['red']):.0f} site-days, and no further. "
+             f"A real plant has noise this simulation does not.")
+    mc = {round(r["setup_allowance_ft"], 3): r for r in se["monte_carlo"]
+          if r["error_scale"] == 1.0 and r["label"].startswith("typical setup errors") and "50-100%" in r["label"]}
+    r0, r2, r4 = mc[0.0]["optimistic"], mc[2.0]["optimistic"], mc[4.0]["optimistic"]
+    setup = (f"Setup errors: if the elevations typed at setup are off by the amounts we assumed (our assumptions, not measurements), about "
+             f"{r0['rate']:.0%} of sites would start with a worst case that promises more time than the truth. A setup allowance of 2 ft cuts that to "
+             f"{r2['rate']:.1%} and 4 ft to {r4['rate']:.1%}, at the price of a shorter countdown. That is why the setup asks for elevations to be checked twice.")
+    return {"RIGOR_V1": html.escape(v1), "RIGOR_ATTACKS": html.escape(attacks), "RIGOR_FALSE": html.escape(false), "RIGOR_SETUP": html.escape(setup)}
+
+
 def hardware_status() -> str:
     """What we can honestly say about real hardware, from results/measurements.json."""
     c = json.loads(MEASUREMENTS.read_text(encoding="utf-8"))["counted"]
@@ -177,7 +215,7 @@ def foot_links() -> str:
 
 def build() -> dict[str, str]:
     layout = (SRC / "_layout.html").read_text(encoding="utf-8")
-    EVAL, HW_STATUS = evaluation_fields(), hardware_status()
+    EVAL, HW_STATUS = {**evaluation_fields(), **rigor_fields()}, hardware_status()
     out: dict[str, str] = {}
     for file, _ in PAGES:
         meta, body = parse((SRC / file).read_text(encoding="utf-8"))

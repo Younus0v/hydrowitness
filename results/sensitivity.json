@@ -1,0 +1,547 @@
+{
+ "error_model": {
+  "critical_elevation_ft": 2.0,
+  "headloss_margin_rel": 0.3,
+  "level_reading_ft": 0.3,
+  "tank_diameter_rel": 0.02,
+  "tank_floor_elevation_ft": 1.0
+ },
+ "monte_carlo": [
+  {
+   "displayed_worst_min": 590.0,
+   "error_scale": 1.0,
+   "label": "typical setup errors; true draw 50-100% of the configured peak (the case the clock is built for)",
+   "optimistic": {
+    "hi": 0.10945601197747701,
+    "k": 399,
+    "lo": 0.09063326683703968,
+    "n": 4000,
+    "rate": 0.09975
+   },
+   "samples": 4000,
+   "setup_allowance_ft": 0.0,
+   "true_demand_vs_peak": [
+    0.5,
+    1.0
+   ],
+   "when_optimistic_median_min": 135.7,
+   "when_optimistic_p90_min": 385.1
+  },
+  {
+   "displayed_worst_min": 590.0,
+   "error_scale": 0.25,
+   "label": "survey-grade setup (a quarter of the errors); draw 50-100% of peak",
+   "optimistic": {
+    "hi": 0.01010117219198995,
+    "k": 28,
+    "lo": 0.004656342164451677,
+    "n": 4000,
+    "rate": 0.007
+   },
+   "samples": 4000,
+   "setup_allowance_ft": 0.0,
+   "true_demand_vs_peak": [
+    0.5,
+    1.0
+   ],
+   "when_optimistic_median_min": 29.1,
+   "when_optimistic_p90_min": 83.9
+  },
+  {
+   "displayed_worst_min": 494.0,
+   "error_scale": 1.0,
+   "label": "typical setup errors, with a 1 ft setup allowance; draw 50-100% of peak",
+   "optimistic": {
+    "hi": 0.07150630389120594,
+    "k": 254,
+    "lo": 0.056138879773453915,
+    "n": 4000,
+    "rate": 0.0635
+   },
+   "samples": 4000,
+   "setup_allowance_ft": 1.0,
+   "true_demand_vs_peak": [
+    0.5,
+    1.0
+   ],
+   "when_optimistic_median_min": 111.1,
+   "when_optimistic_p90_min": 342.2
+  },
+  {
+   "displayed_worst_min": 398.0,
+   "error_scale": 1.0,
+   "label": "typical setup errors, with a 2 ft setup allowance; draw 50-100% of peak",
+   "optimistic": {
+    "hi": 0.04143970683281961,
+    "k": 141,
+    "lo": 0.02975187770938214,
+    "n": 4000,
+    "rate": 0.03525
+   },
+   "samples": 4000,
+   "setup_allowance_ft": 2.0,
+   "true_demand_vs_peak": [
+    0.5,
+    1.0
+   ],
+   "when_optimistic_median_min": 103.8,
+   "when_optimistic_p90_min": 349.1
+  },
+  {
+   "displayed_worst_min": 206.1,
+   "error_scale": 1.0,
+   "label": "typical setup errors, with a 4 ft setup allowance; draw 50-100% of peak",
+   "optimistic": {
+    "hi": 0.013879837135485656,
+    "k": 41,
+    "lo": 0.007365337198096844,
+    "n": 4000,
+    "rate": 0.01025
+   },
+   "samples": 4000,
+   "setup_allowance_ft": 4.0,
+   "true_demand_vs_peak": [
+    0.5,
+    1.0
+   ],
+   "when_optimistic_median_min": 79.4,
+   "when_optimistic_p90_min": 206.1
+  },
+  {
+   "displayed_worst_min": 590.0,
+   "error_scale": 0.5,
+   "label": "half the setup errors; draw 50-100% of peak",
+   "optimistic": {
+    "hi": 0.03955286574563262,
+    "k": 134,
+    "lo": 0.028141796369310926,
+    "n": 4000,
+    "rate": 0.0335
+   },
+   "samples": 4000,
+   "setup_allowance_ft": 0.0,
+   "true_demand_vs_peak": [
+    0.5,
+    1.0
+   ],
+   "when_optimistic_median_min": 59.0,
+   "when_optimistic_p90_min": 173.6
+  },
+  {
+   "displayed_worst_min": 590.0,
+   "error_scale": 2.0,
+   "label": "double the setup errors; draw 50-100% of peak",
+   "optimistic": {
+    "hi": 0.2614347671934052,
+    "k": 991,
+    "lo": 0.23443464764355676,
+    "n": 4000,
+    "rate": 0.24775
+   },
+   "samples": 4000,
+   "setup_allowance_ft": 0.0,
+   "true_demand_vs_peak": [
+    0.5,
+    1.0
+   ],
+   "when_optimistic_median_min": 333.9,
+   "when_optimistic_p90_min": 590.0
+  },
+  {
+   "displayed_worst_min": 590.0,
+   "error_scale": 1.0,
+   "label": "typical setup errors; draw exactly at the configured peak (a boundary case)",
+   "optimistic": {
+    "hi": 0.44576467951844334,
+    "k": 1721,
+    "lo": 0.41483730928655493,
+    "n": 4000,
+    "rate": 0.43025
+   },
+   "samples": 4000,
+   "setup_allowance_ft": 0.0,
+   "true_demand_vs_peak": [
+    1.0,
+    1.0
+   ],
+   "when_optimistic_median_min": 164.0,
+   "when_optimistic_p90_min": 433.1
+  },
+  {
+   "displayed_worst_min": 590.0,
+   "error_scale": 1.0,
+   "label": "typical setup errors; draw 50-150% of peak (demand can exceed the peak)",
+   "optimistic": {
+    "hi": 0.4685808923612502,
+    "k": 1812,
+    "lo": 0.4374878273645473,
+    "n": 4000,
+    "rate": 0.453
+   },
+   "samples": 4000,
+   "setup_allowance_ft": 0.0,
+   "true_demand_vs_peak": [
+    0.5,
+    1.5
+   ],
+   "when_optimistic_median_min": 301.5,
+   "when_optimistic_p90_min": 590.0
+  },
+  {
+   "displayed_worst_min": 590.0,
+   "error_scale": 0.0,
+   "label": "no setup errors at all; draw 50-150% of peak (the demand ceiling alone)",
+   "optimistic": {
+    "hi": 0.4573022399383969,
+    "k": 1767,
+    "lo": 0.42628293081046664,
+    "n": 4000,
+    "rate": 0.44175
+   },
+   "samples": 4000,
+   "setup_allowance_ft": 0.0,
+   "true_demand_vs_peak": [
+    0.5,
+    1.5
+   ],
+   "when_optimistic_median_min": 278.5,
+   "when_optimistic_p90_min": 471.8
+  }
+ ],
+ "one_at_a_time": {
+  "peak_gpm": 300.0,
+  "ranked_by_size": [
+   [
+    "critical-point elevation",
+    "-10 ft from what was typed",
+    -959.6
+   ],
+   [
+    "critical-point elevation",
+    "+10 ft from what was typed",
+    590.0
+   ],
+   [
+    "minimum pressure the customers need",
+    "+5 psi (a higher line)",
+    590.0
+   ],
+   [
+    "critical-point elevation",
+    "-5 ft from what was typed",
+    -479.8
+   ],
+   [
+    "critical-point elevation",
+    "+5 ft from what was typed",
+    479.8
+   ],
+   [
+    "minimum pressure the customers need",
+    "+2 psi (a higher line)",
+    443.3
+   ],
+   [
+    "real peak demand above the configured peak",
+    "+100%",
+    297.5
+   ],
+   [
+    "tank floor elevation",
+    "-3 ft",
+    287.9
+   ]
+  ],
+  "reference": {
+   "expected_min": 1681.6,
+   "gallons_per_ft_of_level": 28788.0,
+   "l_min_ft": 11.2,
+   "level_ft": 18.0,
+   "local_hour": 6,
+   "reading_age_s": 300.0,
+   "usable_depth_ft": 6.8,
+   "worst_min": 590.0
+  },
+  "rows": [
+   {
+    "direction": "optimistic",
+    "displayed_minus_true_min": 96.0,
+    "if_the_real_value_is": "-1.0 ft from what was read",
+    "input": "tank level reading",
+    "relative_to_displayed": 0.163,
+    "true_worst_min": 494.0
+   },
+   {
+    "direction": "optimistic",
+    "displayed_minus_true_min": 48.0,
+    "if_the_real_value_is": "-0.5 ft from what was read",
+    "input": "tank level reading",
+    "relative_to_displayed": 0.081,
+    "true_worst_min": 542.0
+   },
+   {
+    "direction": "pessimistic",
+    "displayed_minus_true_min": -48.0,
+    "if_the_real_value_is": "+0.5 ft from what was read",
+    "input": "tank level reading",
+    "relative_to_displayed": -0.081,
+    "true_worst_min": 637.9
+   },
+   {
+    "direction": "pessimistic",
+    "displayed_minus_true_min": -96.0,
+    "if_the_real_value_is": "+1.0 ft from what was read",
+    "input": "tank level reading",
+    "relative_to_displayed": -0.163,
+    "true_worst_min": 685.9
+   },
+   {
+    "direction": "optimistic",
+    "displayed_minus_true_min": 58.0,
+    "if_the_real_value_is": "-5%",
+    "input": "tank diameter",
+    "relative_to_displayed": 0.098,
+    "true_worst_min": 532.0
+   },
+   {
+    "direction": "optimistic",
+    "displayed_minus_true_min": 23.6,
+    "if_the_real_value_is": "-2%",
+    "input": "tank diameter",
+    "relative_to_displayed": 0.04,
+    "true_worst_min": 566.4
+   },
+   {
+    "direction": "pessimistic",
+    "displayed_minus_true_min": -24.0,
+    "if_the_real_value_is": "+2%",
+    "input": "tank diameter",
+    "relative_to_displayed": -0.041,
+    "true_worst_min": 614.0
+   },
+   {
+    "direction": "pessimistic",
+    "displayed_minus_true_min": -61.0,
+    "if_the_real_value_is": "+5%",
+    "input": "tank diameter",
+    "relative_to_displayed": -0.103,
+    "true_worst_min": 650.9
+   },
+   {
+    "direction": "pessimistic",
+    "displayed_minus_true_min": -959.6,
+    "if_the_real_value_is": "-10 ft from what was typed",
+    "input": "critical-point elevation",
+    "relative_to_displayed": -1.627,
+    "true_worst_min": 1549.6
+   },
+   {
+    "direction": "pessimistic",
+    "displayed_minus_true_min": -479.8,
+    "if_the_real_value_is": "-5 ft from what was typed",
+    "input": "critical-point elevation",
+    "relative_to_displayed": -0.813,
+    "true_worst_min": 1069.8
+   },
+   {
+    "direction": "pessimistic",
+    "displayed_minus_true_min": -191.9,
+    "if_the_real_value_is": "-2 ft from what was typed",
+    "input": "critical-point elevation",
+    "relative_to_displayed": -0.325,
+    "true_worst_min": 781.9
+   },
+   {
+    "direction": "optimistic",
+    "displayed_minus_true_min": 191.9,
+    "if_the_real_value_is": "+2 ft from what was typed",
+    "input": "critical-point elevation",
+    "relative_to_displayed": 0.325,
+    "true_worst_min": 398.0
+   },
+   {
+    "direction": "optimistic",
+    "displayed_minus_true_min": 479.8,
+    "if_the_real_value_is": "+5 ft from what was typed",
+    "input": "critical-point elevation",
+    "relative_to_displayed": 0.813,
+    "true_worst_min": 110.2
+   },
+   {
+    "direction": "optimistic",
+    "displayed_minus_true_min": 590.0,
+    "if_the_real_value_is": "+10 ft from what was typed",
+    "input": "critical-point elevation",
+    "relative_to_displayed": 1.0,
+    "true_worst_min": 0.0
+   },
+   {
+    "direction": "optimistic",
+    "displayed_minus_true_min": 287.9,
+    "if_the_real_value_is": "-3 ft",
+    "input": "tank floor elevation",
+    "relative_to_displayed": 0.488,
+    "true_worst_min": 302.1
+   },
+   {
+    "direction": "optimistic",
+    "displayed_minus_true_min": 96.0,
+    "if_the_real_value_is": "-1 ft",
+    "input": "tank floor elevation",
+    "relative_to_displayed": 0.163,
+    "true_worst_min": 494.0
+   },
+   {
+    "direction": "pessimistic",
+    "displayed_minus_true_min": -96.0,
+    "if_the_real_value_is": "+1 ft",
+    "input": "tank floor elevation",
+    "relative_to_displayed": -0.163,
+    "true_worst_min": 685.9
+   },
+   {
+    "direction": "pessimistic",
+    "displayed_minus_true_min": -287.9,
+    "if_the_real_value_is": "+3 ft",
+    "input": "tank floor elevation",
+    "relative_to_displayed": -0.488,
+    "true_worst_min": 877.8
+   },
+   {
+    "direction": "pessimistic",
+    "displayed_minus_true_min": -239.9,
+    "if_the_real_value_is": "-50%",
+    "input": "friction (headloss) margin",
+    "relative_to_displayed": -0.407,
+    "true_worst_min": 829.9
+   },
+   {
+    "direction": "pessimistic",
+    "displayed_minus_true_min": -143.9,
+    "if_the_real_value_is": "-30%",
+    "input": "friction (headloss) margin",
+    "relative_to_displayed": -0.244,
+    "true_worst_min": 733.9
+   },
+   {
+    "direction": "optimistic",
+    "displayed_minus_true_min": 143.9,
+    "if_the_real_value_is": "+30%",
+    "input": "friction (headloss) margin",
+    "relative_to_displayed": 0.244,
+    "true_worst_min": 446.0
+   },
+   {
+    "direction": "optimistic",
+    "displayed_minus_true_min": 239.9,
+    "if_the_real_value_is": "+50%",
+    "input": "friction (headloss) margin",
+    "relative_to_displayed": 0.407,
+    "true_worst_min": 350.1
+   },
+   {
+    "direction": "optimistic",
+    "displayed_minus_true_min": 443.3,
+    "if_the_real_value_is": "+2 psi (a higher line)",
+    "input": "minimum pressure the customers need",
+    "relative_to_displayed": 0.751,
+    "true_worst_min": 146.6
+   },
+   {
+    "direction": "optimistic",
+    "displayed_minus_true_min": 590.0,
+    "if_the_real_value_is": "+5 psi (a higher line)",
+    "input": "minimum pressure the customers need",
+    "relative_to_displayed": 1.0,
+    "true_worst_min": 0.0
+   },
+   {
+    "direction": "optimistic",
+    "displayed_minus_true_min": 119.0,
+    "if_the_real_value_is": "+25%",
+    "input": "real peak demand above the configured peak",
+    "relative_to_displayed": 0.202,
+    "true_worst_min": 471.0
+   },
+   {
+    "direction": "optimistic",
+    "displayed_minus_true_min": 198.3,
+    "if_the_real_value_is": "+50%",
+    "input": "real peak demand above the configured peak",
+    "relative_to_displayed": 0.336,
+    "true_worst_min": 391.6
+   },
+   {
+    "direction": "optimistic",
+    "displayed_minus_true_min": 297.5,
+    "if_the_real_value_is": "+100%",
+    "input": "real peak demand above the configured peak",
+    "relative_to_displayed": 0.504,
+    "true_worst_min": 292.5
+   }
+  ]
+ },
+ "pump_credit": [
+  {
+   "case": "no pump credited",
+   "worst_min": 590.0
+  },
+  {
+   "case": "P1 credited at 0.8 x rated (200 gpm)",
+   "worst_min": 1779.9
+  },
+  {
+   "case": "P1 credited at 200 gpm; the pump delivers its full rated flow (250 gpm)",
+   "displayed_minus_true_min": -1784.9,
+   "true_worst_min": 3564.8,
+   "worst_min": 1779.9
+  },
+  {
+   "case": "P1 credited at 200 gpm; a worn pump delivers 75% of its rated flow (188 gpm)",
+   "displayed_minus_true_min": 198.3,
+   "true_worst_min": 1581.6,
+   "worst_min": 1779.9
+  },
+  {
+   "case": "P1 credited at 200 gpm; a worn pump delivers 50% of its rated flow (125 gpm)",
+   "displayed_minus_true_min": 764.9,
+   "true_worst_min": 1014.9,
+   "worst_min": 1779.9
+  }
+ ],
+ "reading_age": [
+  {
+   "level_uncertainty_ft": 0.6,
+   "quality": "fresh",
+   "reading_age": "5 min",
+   "worst_min": 590.0
+  },
+  {
+   "level_uncertainty_ft": 0.8,
+   "quality": "fresh",
+   "reading_age": "15 min",
+   "worst_min": 560.8
+  },
+  {
+   "level_uncertainty_ft": 1.7,
+   "quality": "aging",
+   "reading_age": "1 h",
+   "worst_min": 429.4
+  },
+  {
+   "level_uncertainty_ft": 4.1,
+   "quality": "old",
+   "reading_age": "3 h",
+   "worst_min": 79.1
+  },
+  {
+   "level_uncertainty_ft": 14.9,
+   "quality": "old",
+   "reading_age": "12 h",
+   "worst_min": 0.0
+  }
+ ],
+ "samples": 4000,
+ "schema": 1,
+ "seed": 20261114
+}

@@ -153,6 +153,13 @@ def test_held_out_scores_come_from_a_fit_that_never_saw_the_evaluation_recording
     h = rep["heldout"]
     assert rep["counted"] == {"bench": 0, "development": 1, "evaluation": 1}
     assert all(v["verdict"] != "NO DATA" for v in h.values()) and h["acc"]["running_correct"] > 0.9 and h["acc"]["stopped_correct"] > 0.9
+    # every score comes with an exact interval that contains it, and the markdown says the windows are not independent
+    for v in h.values():
+        for key in ("running_correct", "stopped_correct"):
+            lo, hi = v[key + "_ci95"]
+            assert 0.0 <= lo <= v[key] <= hi <= 1.0
+    text = M.markdown(rep)
+    assert "95% CI" in text and "treat every window as independent" in text
     # change only the evaluation labels (swap running and stopped): the score must follow the evaluation data, not the fit
     ev = base / "2026-11-09-sump-2" / "serial.log"
     ev.write_text("\n".join(x.replace(",R,", ",X,").replace(",S,", ",R,").replace(",X,", ",S,") if x.startswith("F,") else x

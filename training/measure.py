@@ -36,8 +36,10 @@ from pathlib import Path
 from typing import Callable, Iterable, Optional
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import node_reference as nr  # noqa: E402
 import train_classifier as tc  # noqa: E402
+from hydrowitness import stats  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
 DIR = ROOT / "measurements"
@@ -166,7 +168,7 @@ def capture_port(d: Path, port: str, baud: int = 115200) -> int:  # pragma: no c
     try:
         import serial  # type: ignore
     except ImportError:
-        raise SystemExit("reading a serial port needs pyserial: pip install pyserial   (or save the Serial Monitor text and use --from-file)")
+        raise SystemExit("reading a serial port needs pyserial: pip install pyserial   (or save the Serial Monitor text and use --from-file)") from None
     ser = serial.Serial(port, baud, timeout=0.5)
     cap = Capture(d, send=lambda s: ser.write((s + "\n").encode()))
     stop = threading.Event()
@@ -249,8 +251,13 @@ def heldout(dev_logs: list[list[str]], eval_logs: list[list[str]]) -> dict:
             rec["verdict"] = "NO DATA"
         else:
             m = nr.fit(R, S)
-            rec["running_correct"] = round(float(sum(m.z(x) > 0 for x in eR)) / len(eR), 3)
-            rec["stopped_correct"] = round(float(sum(m.z(x) < 0 for x in eS)) / len(eS), 3)
+            kr, ks = int(sum(m.z(x) > 0 for x in eR)), int(sum(m.z(x) < 0 for x in eS))
+            rec["running_correct"] = round(kr / len(eR), 3)
+            rec["stopped_correct"] = round(ks / len(eS), 3)
+            # Exact 95% intervals. Windows inside one recording are strongly correlated, so these treat them as independent and are
+            # too narrow: the number of separate runs and separate days is what really limits what can be concluded.
+            rec["running_correct_ci95"] = [round(x, 3) for x in stats.clopper_pearson(kr, len(eR))]
+            rec["stopped_correct_ci95"] = [round(x, 3) for x in stats.clopper_pearson(ks, len(eS))]
             rec["verdict"] = tc.verdict(min(rec["running_correct"], rec["stopped_correct"]))
         out[name] = rec
     return out
@@ -336,12 +343,16 @@ def markdown(rep: dict) -> str:
         L.append("")
     if rep["heldout"]:
         L += ["## Held-out score (fit on development sessions, scored on evaluation sessions)", "",
-              "| channel | development windows (running / stopped) | evaluation windows (running / stopped) | running right | stopped right | verdict |",
+              "| channel | development windows (running / stopped) | evaluation windows (running / stopped) | running right (95% CI) | stopped right (95% CI) | verdict |",
               "|---|---|---|---|---|---|"]
         for ch, v in rep["heldout"].items():
+            def cell(key, v=v):
+                ci = v.get(key + "_ci95")
+                return f"{v[key]} ({ci[0]} to {ci[1]})" if ci else "-"
             L.append(f"| {ch} | {v['development_running']} / {v['development_stopped']} | {v['evaluation_running']} / {v['evaluation_stopped']} | "
-                     f"{v.get('running_correct', '-')} | {v.get('stopped_correct', '-')} | {v['verdict']} |")
-        L.append("")
+                     f"{cell('running_correct')} | {cell('stopped_correct')} | {v['verdict']} |")
+        L += ["", "The intervals are exact (Clopper-Pearson) but treat every window as independent. Windows from one recording are strongly "
+              "correlated, so the true uncertainty is larger. How many separate runs, days and pumps were recorded matters more than how many windows.", ""]
     L += ["## What this does and does not support", "",
           "- A bench log shows the board boots and what its sensors say about themselves. It says nothing about whether the node can tell a "
           "pump's on from its off.",

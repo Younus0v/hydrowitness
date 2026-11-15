@@ -1,0 +1,645 @@
+{
+ "attacks": {
+  "by_scenario": {
+   "colorado_style|no operator": {
+    "alarm_panel": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "alarm_panel_flatline": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "hydrowitness_red": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "hydrowitness_warned": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "operator": false,
+    "runs": 20,
+    "scenario": "colorado_style"
+   },
+   "colorado_style|operator": {
+    "alarm_panel": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "alarm_panel_flatline": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "hydrowitness_red": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "hydrowitness_warned": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "operator": true,
+    "runs": 20,
+    "scenario": "colorado_style"
+   },
+   "forced_off_spoofed|no operator": {
+    "alarm_panel": {
+     "hi": 0.1684334709830853,
+     "k": 0,
+     "lo": 0.0,
+     "n": 20,
+     "rate": 0.0
+    },
+    "alarm_panel_flatline": {
+     "hi": 0.1684334709830853,
+     "k": 0,
+     "lo": 0.0,
+     "n": 20,
+     "rate": 0.0
+    },
+    "hydrowitness_red": {
+     "hi": 0.1684334709830853,
+     "k": 0,
+     "lo": 0.0,
+     "n": 20,
+     "rate": 0.0
+    },
+    "hydrowitness_warned": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "operator": false,
+    "runs": 20,
+    "scenario": "forced_off_spoofed"
+   },
+   "forced_off_spoofed|operator": {
+    "alarm_panel": {
+     "hi": 0.1684334709830853,
+     "k": 0,
+     "lo": 0.0,
+     "n": 20,
+     "rate": 0.0
+    },
+    "alarm_panel_flatline": {
+     "hi": 0.1684334709830853,
+     "k": 0,
+     "lo": 0.0,
+     "n": 20,
+     "rate": 0.0
+    },
+    "hydrowitness_red": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "hydrowitness_warned": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "operator": true,
+    "runs": 20,
+    "scenario": "forced_off_spoofed"
+   },
+   "frozen_screen|no operator": {
+    "alarm_panel": {
+     "hi": 0.1684334709830853,
+     "k": 0,
+     "lo": 0.0,
+     "n": 20,
+     "rate": 0.0
+    },
+    "alarm_panel_flatline": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "hydrowitness_red": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "hydrowitness_warned": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "operator": false,
+    "runs": 20,
+    "scenario": "frozen_screen"
+   },
+   "frozen_screen|operator": {
+    "alarm_panel": {
+     "hi": 0.1684334709830853,
+     "k": 0,
+     "lo": 0.0,
+     "n": 20,
+     "rate": 0.0
+    },
+    "alarm_panel_flatline": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "hydrowitness_red": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "hydrowitness_warned": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "operator": true,
+    "runs": 20,
+    "scenario": "frozen_screen"
+   },
+   "hidden_valve_closure|no operator": {
+    "alarm_panel": {
+     "hi": 0.1684334709830853,
+     "k": 0,
+     "lo": 0.0,
+     "n": 20,
+     "rate": 0.0
+    },
+    "alarm_panel_flatline": {
+     "hi": 0.1684334709830853,
+     "k": 0,
+     "lo": 0.0,
+     "n": 20,
+     "rate": 0.0
+    },
+    "hydrowitness_red": {
+     "hi": 0.1684334709830853,
+     "k": 0,
+     "lo": 0.0,
+     "n": 20,
+     "rate": 0.0
+    },
+    "hydrowitness_warned": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "operator": false,
+    "runs": 20,
+    "scenario": "hidden_valve_closure"
+   },
+   "hidden_valve_closure|operator": {
+    "alarm_panel": {
+     "hi": 0.1684334709830853,
+     "k": 0,
+     "lo": 0.0,
+     "n": 20,
+     "rate": 0.0
+    },
+    "alarm_panel_flatline": {
+     "hi": 0.1684334709830853,
+     "k": 0,
+     "lo": 0.0,
+     "n": 20,
+     "rate": 0.0
+    },
+    "hydrowitness_red": {
+     "hi": 0.1684334709830853,
+     "k": 0,
+     "lo": 0.0,
+     "n": 20,
+     "rate": 0.0
+    },
+    "hydrowitness_warned": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "operator": true,
+    "runs": 20,
+    "scenario": "hidden_valve_closure"
+   },
+   "power_loss_lookalike|no operator": {
+    "alarm_panel": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "alarm_panel_flatline": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "hydrowitness_red": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "hydrowitness_warned": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "operator": false,
+    "runs": 20,
+    "scenario": "power_loss_lookalike"
+   },
+   "power_loss_lookalike|operator": {
+    "alarm_panel": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "alarm_panel_flatline": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "hydrowitness_red": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "hydrowitness_warned": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "operator": true,
+    "runs": 20,
+    "scenario": "power_loss_lookalike"
+   },
+   "replay|no operator": {
+    "alarm_panel": {
+     "hi": 0.1684334709830853,
+     "k": 0,
+     "lo": 0.0,
+     "n": 20,
+     "rate": 0.0
+    },
+    "alarm_panel_flatline": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "hydrowitness_red": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "hydrowitness_warned": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "operator": false,
+    "runs": 20,
+    "scenario": "replay"
+   },
+   "replay|operator": {
+    "alarm_panel": {
+     "hi": 0.1684334709830853,
+     "k": 0,
+     "lo": 0.0,
+     "n": 20,
+     "rate": 0.0
+    },
+    "alarm_panel_flatline": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "hydrowitness_red": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "hydrowitness_warned": {
+     "hi": 1.0,
+     "k": 20,
+     "lo": 0.8315665290169136,
+     "n": 20,
+     "rate": 1.0
+    },
+    "operator": true,
+    "runs": 20,
+    "scenario": "replay"
+   }
+  },
+  "without_operator_all_scenarios": {
+   "alarm_panel": {
+    "hi": 0.4251782878363509,
+    "k": 40,
+    "lo": 0.24993508930265979,
+    "n": 120,
+    "rate": 0.3333333333333333
+   },
+   "alarm_panel_flatline": {
+    "hi": 0.7500649106972843,
+    "k": 80,
+    "lo": 0.5748217121635912,
+    "n": 120,
+    "rate": 0.6666666666666666
+   },
+   "hydrowitness_warned": {
+    "hi": 1.0,
+    "k": 120,
+    "lo": 0.9697270274225573,
+    "n": 120,
+    "rate": 1.0
+   },
+   "runs": 120
+  }
+ },
+ "countdown": {
+  "bound_failures_checkpoint": {
+   "hi": 0.0015358524754633357,
+   "k": 0,
+   "lo": 0.0,
+   "n": 2400,
+   "rate": 0.0
+  },
+  "checkpoints_scored": 2400,
+  "note": "Checkpoints inside one run are strongly correlated, so the checkpoint interval is optimistic. The run-level interval is the one to quote.",
+  "runs_where_the_bound_failed": {
+   "hi": 0.015127712453415525,
+   "k": 0,
+   "lo": 0.0,
+   "n": 242,
+   "rate": 0.0
+  },
+  "runs_with_a_scored_checkpoint": 242
+ },
+ "failure_conditions": {
+  "both_witnesses_jammed": {
+   "hydrowitness_red": {
+    "hi": 0.3084971078187607,
+    "k": 0,
+    "lo": 0.0,
+    "n": 10,
+    "rate": 0.0
+   },
+   "hydrowitness_warned": {
+    "hi": 1.0,
+    "k": 10,
+    "lo": 0.6915028921812354,
+    "n": 10,
+    "rate": 1.0
+   },
+   "runs": 10
+  },
+  "one_witness_jammed": {
+   "hydrowitness_red": {
+    "hi": 0.3084971078187607,
+    "k": 0,
+    "lo": 0.0,
+    "n": 10,
+    "rate": 0.0
+   },
+   "hydrowitness_warned": {
+    "hi": 1.0,
+    "k": 10,
+    "lo": 0.6915028921812354,
+    "n": 10,
+    "rate": 1.0
+   },
+   "runs": 10
+  },
+  "replay_witnesses_jammed": {
+   "hydrowitness_red": {
+    "hi": 1.0,
+    "k": 10,
+    "lo": 0.6915028921812354,
+    "n": 10,
+    "rate": 1.0
+   },
+   "hydrowitness_warned": {
+    "hi": 1.0,
+    "k": 10,
+    "lo": 0.6915028921812354,
+    "n": 10,
+    "rate": 1.0
+   },
+   "runs": 10
+  }
+ },
+ "false_alarms": {
+  "false_amber": 0,
+  "false_red": 0,
+  "site_days": 434.0,
+  "site_days_needed_for_upper_bound_below_0.01_when_zero_events": 369,
+  "sources": [
+   {
+    "false_amber": 0,
+    "false_red": 0,
+    "name": "evaluation: normal operation",
+    "site_days": 24.0
+   },
+   {
+    "false_amber": 0,
+    "false_red": 0,
+    "name": "drills: normal operation",
+    "site_days": 10.0
+   },
+   {
+    "false_amber": 0,
+    "false_red": 0,
+    "name": "long study (seeds 1000+)",
+    "site_days": 400.0
+   }
+  ],
+  "upper_95_per_site_day": {
+   "amber": 0.008499722244502156,
+   "red": 0.008499722244502156
+  }
+ },
+ "level": 0.95,
+ "method": "Clopper-Pearson exact (proportions); Poisson exact (rates)",
+ "schema": 1,
+ "v1_clock_vs_epanet": {
+  "families": {
+   "model_check": {
+    "false_stable": {
+     "hi": 0.11570330822202779,
+     "k": 0,
+     "lo": 0.0,
+     "n": 30,
+     "rate": 0.0
+    },
+    "unsafe": {
+     "hi": 0.11570330822202779,
+     "k": 0,
+     "lo": 0.0,
+     "n": 30,
+     "rate": 0.0
+    }
+   },
+   "nominal_off": {
+    "false_stable": {
+     "hi": 0.03621669264517641,
+     "k": 0,
+     "lo": 0.0,
+     "n": 100,
+     "rate": 0.0
+    },
+    "unsafe": {
+     "hi": 0.03621669264517641,
+     "k": 0,
+     "lo": 0.0,
+     "n": 100,
+     "rate": 0.0
+    }
+   },
+   "nominal_pump": {
+    "false_stable": {
+     "hi": 0.05133379715102375,
+     "k": 0,
+     "lo": 0.0,
+     "n": 70,
+     "rate": 0.0
+    },
+    "unsafe": {
+     "hi": 0.05133379715102375,
+     "k": 0,
+     "lo": 0.0,
+     "n": 70,
+     "rate": 0.0
+    }
+   },
+   "stress_demand": {
+    "false_stable": {
+     "hi": 0.08809730287880238,
+     "k": 0,
+     "lo": 0.0,
+     "n": 40,
+     "rate": 0.0
+    },
+    "unsafe": {
+     "hi": 0.35647801867923445,
+     "k": 8,
+     "lo": 0.09052240939997691,
+     "n": 40,
+     "rate": 0.2
+    }
+   },
+   "stress_margin": {
+    "false_stable": {
+     "hi": 0.08809730287880238,
+     "k": 0,
+     "lo": 0.0,
+     "n": 40,
+     "rate": 0.0
+    },
+    "unsafe": {
+     "hi": 0.08809730287880238,
+     "k": 0,
+     "lo": 0.0,
+     "n": 40,
+     "rate": 0.0
+    }
+   },
+   "stress_pump": {
+    "false_stable": {
+     "hi": 0.11570330822202779,
+     "k": 0,
+     "lo": 0.0,
+     "n": 30,
+     "rate": 0.0
+    },
+    "unsafe": {
+     "hi": 0.11570330822202779,
+     "k": 0,
+     "lo": 0.0,
+     "n": 30,
+     "rate": 0.0
+    }
+   }
+  },
+  "inside_assumptions": {
+   "families": [
+    "model_check",
+    "nominal_off",
+    "nominal_pump"
+   ],
+   "unsafe": {
+    "hi": 0.01827534035513624,
+    "k": 0,
+    "lo": 0.0,
+    "n": 200,
+    "rate": 0.0
+   }
+  }
+ }
+}
