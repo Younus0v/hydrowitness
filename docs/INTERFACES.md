@@ -103,6 +103,7 @@ Site profile fields that matter most (units: feet, gpm, psi):
 | `critical_point_elev_ft` | elevation of the service point that would lose pressure first |
 | `min_pressure_psi` | the pressure that must hold there (20 by default) |
 | `headloss_margin_ft` | **friction loss from the tank to the critical point at peak demand**, from a hydraulic model or a flow test. The expected-case clock scales it down at lower demand (flow^1.852); the worst case uses it as entered |
+| `setup_uncertainty_ft` | **optional allowance (0 to 20 ft, default 0)** for errors in the typed setup: tank floor and critical-point elevations, tank dimensions. The worst case subtracts it from the usable water, so the countdown is shorter by about `allowance x gallons-per-foot / peak demand` minutes. Only the worst case carries it. With the survey errors we assumed (not measured) about 1 site in 10 would otherwise start with an optimistic worst case; an allowance of 2 to 4 ft brings that down (see `results/sensitivity.md`). Leave it at 0 only if every elevation has been checked from a second source |
 | `peak_demand_gpm` | the demand the worst case assumes. Real demand above this (main break, fire flow) can make the clock late; the clock says so on screen |
 | `typical_demand_gpm_by_hour` | 24 numbers, local hour 0-23 |
 | `pumps[]` | `id`, `rated_gpm` (design flow; 80% is credited, and only while a witness shows water moving), `node_id` |

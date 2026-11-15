@@ -54,6 +54,9 @@ class SiteProfile(_Model):
     critical_point_elev_ft: float = 0.0
     min_pressure_psi: float = 20.0
     headloss_margin_ft: float = 5.0
+    # Extra feet of tank level the worst case gives up because the elevations typed into setup may be off. Default 0: no change.
+    # results/sensitivity.md shows what an allowance buys: a few feet makes the countdown err on the safe side far more often.
+    setup_uncertainty_ft: float = Field(default=0.0, ge=0.0, le=20.0)
     peak_demand_gpm: float = 300.0
     typical_demand_gpm_by_hour: list[float] = Field(default_factory=lambda: [180.0] * 24, min_length=24, max_length=24)
     pumps: list[Pump] = Field(default_factory=list)

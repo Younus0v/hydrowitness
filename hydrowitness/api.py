@@ -24,6 +24,7 @@ from pathlib import Path
 from typing import Any, Optional
 
 from fastapi import Body, Depends, FastAPI, Header, HTTPException, Query
+from fastapi.exceptions import RequestValidationError
 from fastapi.responses import FileResponse, JSONResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, ValidationError
@@ -215,6 +216,13 @@ def create_app(profile: Optional[SiteProfile] = None, node_secrets: Optional[dic
         if not pysecrets.compare_digest(supplied.encode(), token.encode()):
             raise HTTPException(401, "missing or wrong access token")
 
+    @app.exception_handler(RequestValidationError)
+    async def bad_request(request, exc: RequestValidationError):
+        """A refused request is answered with what was wrong, never with the offending bytes. Echoing the input back made a body that
+        is not valid text crash the encoder and turn a 422 into a 500 (found by tests/test_properties.py)."""
+        detail = [{"loc": [str(x) for x in e.get("loc", [])], "msg": str(e.get("msg", "")), "type": str(e.get("type", ""))} for e in exc.errors()]
+        return JSONResponse({"detail": detail}, status_code=422)
+
     @app.middleware("http")
     async def headers(request, call_next):
         resp = await call_next(request)
@@ -269,7 +277,7 @@ def create_app(profile: Optional[SiteProfile] = None, node_secrets: Optional[dic
         try:
             snap = ScadaSnapshot(**body)
         except ValidationError as exc:
-            raise HTTPException(422, json.loads(exc.json()))
+            raise HTTPException(422, json.loads(exc.json())) from None
         st.live.alerts_enabled = True
         st.live.ingest_scada(snap)
         return {"ok": True}
@@ -324,7 +332,7 @@ def create_app(profile: Optional[SiteProfile] = None, node_secrets: Optional[dic
             profile = SiteProfile(**body)
         except (ValidationError, ValueError) as exc:
             detail = json.loads(exc.json()) if isinstance(exc, ValidationError) else str(exc)
-            raise HTTPException(422, detail)
+            raise HTTPException(422, detail) from None
         st.reconfigure(profile)
         return {"ok": True, "site": profile.site_name}
 
@@ -379,9 +387,9 @@ def create_app(profile: Optional[SiteProfile] = None, node_secrets: Optional[dic
             try:
                 label = st.drill.inject(body.action, body.arg)
             except KeyError:
-                raise HTTPException(404, "unknown action")
+                raise HTTPException(404, "unknown action") from None
             except ValueError as exc:
-                raise HTTPException(422, str(exc))
+                raise HTTPException(422, str(exc)) from None
         return {"ok": True, "label": label}
 
     # ------------------------------------------------------------------ pages

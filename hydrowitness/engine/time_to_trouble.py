@@ -189,6 +189,10 @@ def compute_clock(profile: SiteProfile, now: float, level: Optional[LevelReading
         return _compute_direct(profile, now, credits)
 
     lmin = l_min_ft(profile)
+    if level is not None and not math.isfinite(level.value_ft):
+        level = None                          # NaN or infinity is not a reading: ask for a person to read the tank
+    elif level is not None and profile.tank_height_ft and level.value_ft > profile.tank_height_ft:
+        level = LevelReading(profile.tank_height_ft, level.t, level.source)   # a tank cannot hold more than its height
     if level is None:
         return ClockResult(mode="storage", ok=False, l_min_ft=lmin, needs_operator_reading=True,
                            basis="No tank level available. Read the tank sight glass and enter it.",
@@ -213,7 +217,8 @@ def compute_clock(profile: SiteProfile, now: float, level: Optional[LevelReading
     # Worst case: peak demand, credited inflow only, level uncertainty subtracted.
     net_w = profile.peak_demand_gpm - q_in
     drop_w_ft = (profile.peak_demand_gpm * dark_no_credit_s + max(net_w, 0.0) * dark_credit_s) / 60.0 / gpf
-    level_w = level.value_ft - drop_w_ft - unc
+    setup_allowance = profile.setup_uncertainty_ft
+    level_w = level.value_ft - drop_w_ft - unc - setup_allowance
     usable_w = max(0.0, (level_w - lmin) * gpf)
     if net_w <= 0:
         worst: Optional[float] = None
@@ -277,6 +282,8 @@ def compute_clock(profile: SiteProfile, now: float, level: Optional[LevelReading
         f"Friction: a {profile.headloss_margin_ft:.1f} ft headloss margin at peak demand (scaled down at lower demand in the expected case); "
         f"the line is {profile.min_pressure_psi:.0f} psi at the farthest customer.",
     ]
+    if setup_allowance > 0:
+        lines.append(f"Setup allowance: the worst case also subtracts {setup_allowance:.1f} ft of tank level, because the elevations typed into setup may be a little off.")
     state = "not_falling" if worst is None else ("empty" if worst <= 0 else "falling")
     return ClockResult(
         mode="storage", ok=True, basis=f"{basis}, {int(age)} s old", level_ft=level.value_ft,
@@ -288,7 +295,7 @@ def compute_clock(profile: SiteProfile, now: float, level: Optional[LevelReading
         assumptions={"worst_demand_gpm": profile.peak_demand_gpm, "expected_demand_now_gpm": typ_now,
                      "inflow_credited_gpm": q_in, "horizon_h": C.EXPECTED_HORIZON_H,
                      "headloss_margin_ft": profile.headloss_margin_ft, "min_pressure_psi": profile.min_pressure_psi,
-                     "level_uncertainty_ft": unc},
+                     "level_uncertainty_ft": unc, "setup_allowance_ft": setup_allowance},
         assumption_lines=lines,
     )
 
@@ -356,6 +363,10 @@ def _compute_direct(profile: SiteProfile, now: float, credits: list[CreditedFlow
 def format_minutes(m: Optional[float]) -> str:
     if m is None:
         return "stable"
+    if m != m:
+        return "unknown"
+    if math.isinf(m):
+        return "stable" if m > 0 else "0 min"
     h, mm = divmod(int(round(m)), 60)
     return f"{h} h {mm:02d} min" if h else f"{mm} min"
 

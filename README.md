@@ -30,9 +30,10 @@ Mac/Linux one was run from a fresh copy and the server, token check and sign-in 
 
 | part | status |
 |---|---|
-| server: Time-to-Trouble clock, seven consistency rules, trust engine, node verification, evidence log, playbook, private alerts with a retry queue, API, dashboard with an offline Emergency view | built; 426 automated tests pass |
+| server: Time-to-Trouble clock, seven consistency rules, trust engine, node verification, evidence log, playbook, private alerts with a retry queue, API, dashboard with an offline Emergency view | built; 477 automated tests pass, including property-based fuzz tests |
 | simulated plant, simulated Witness Node, six attack drills, false-alarm runs | built; results below |
 | clock against EPANET hydraulics (310 randomized systems) | done; results below |
+| exact confidence intervals, a setup-error sensitivity analysis, a long false-alarm study (400 simulated site-days) | done; `results/statistics.md`, `results/sensitivity.md`, `results/long_normal.md` |
 | Witness Node signal processing, classifier, install calibration, button/LED/buzzer logic, message signing | built in portable C++; run against the Python reference and synthetic pumps on a normal computer |
 | Witness Node Arduino sketch (I2S, I2C, Wi-Fi, flash) | written, compiles for the ESP32 (core 3.3.12), and **has booted on a real ESP32-S board** (bench boot log in `measurements/`). Sensor data, Wi-Fi to the server and a real pump are **not yet verified**; the accelerometer module answered `0x72` instead of `0x68`, which is being checked |
 | real pump: does the node tell on from off? | **not measured** (needs the parts: `docs/HARDWARE_STAGE.md`) |
@@ -50,7 +51,8 @@ To host it, see `site/README.md` (Vercel with Root Directory `site`, or Netlify 
 
 ```
 pip install -r requirements.txt
-python3 -m pytest tests -q                                   # 426 tests, about 135 s (needs g++ for the firmware tests)
+python3 -m pytest tests -q -n 4                              # 477 tests, about 1 to 3 minutes (needs g++ for the firmware tests)
+python3 tools/verify_all.py                                  # one command: tests, and that the reports and website match the saved results
 HYDROWITNESS_TOKEN=choose-a-long-random-token uvicorn hydrowitness.api:app --port 8000
 ```
 
@@ -63,6 +65,10 @@ python3 -m hydrowitness.sim.wntr_validation        # V1, about 35 s, writes resu
 python3 -m hydrowitness.sim.validation_report      # V2, about 70 s, writes results/v2_drills.*
 python3 -m hydrowitness.sim.evaluation --jobs 2    # HydroWitness against a plain alarm panel, about 3 min, writes results/evaluation.*
 python3 training/measure.py report                 # what real measurements exist (none from a pump yet), writes results/measurements.*
+python3 tools/long_normal.py --runs 80 --days 5    # long false-alarm study, about 15 min, resumable, writes results/long_normal.*
+python3 tools/make_statistics.py                   # exact confidence intervals for every count, writes results/statistics.*
+python3 tools/sensitivity.py                       # what a wrong setup number does to the countdown, writes results/sensitivity.*
+python3 tools/soak_test.py                         # load and soak test of the real server, writes results/soak.*
 ```
 
 ## Results (simulated plant; read the limits)
@@ -97,6 +103,20 @@ floor.
 | a valve closed out of sight | amber (customers) in 3 minutes; **never red** (customer reports can't make red alone, by design) |
 | healthy plant | 0 false alarms in 10 site-days with 33 real pump starts and stops; 0 false rule episodes in 20 site-days |
 
+## How sure are we, and what is still missing
+
+Every count above has an exact 95% interval in `results/statistics.md` (for example, 0 unsafe in 200 EPANET systems inside the clock's assumptions means the true rate is below 1.8%, not zero). The long study found 0 false amber and 0 false red in 400 further simulated site-days on seeds the tuning never saw, which rules out a false warning more often than about once in 108 site-days, and no further. A wrong typed elevation moves the countdown: under the setup errors we assumed, about 1 site in 10 would start with an optimistic worst case, and the optional `setup_uncertainty_ft` allowance cuts that (`results/sensitivity.md`). Fuzz testing found two real bugs, both fixed. **All of this is simulation.**
+
+| document | what it is |
+|---|---|
+| `docs/VALIDATION_MATRIX.md` | every public claim, the evidence for it, and its status (supported in simulation, shown by tests, not tested) |
+| `docs/LIMITATIONS.md` | everything we know it does not do or has not shown |
+| `docs/THREAT_MODEL.md` | who might attack it, what we built against each, what is not covered |
+| `docs/FMEA.md` | how the Witness Node can fail, what then happens, what we did |
+| `docs/PUMP_TEST_PROTOCOL.md` | the pass line for a real pump test, written before the recordings |
+| `docs/RESEARCH_BASIS.md` | the sources we cite, what each says, and what we have not verified |
+| `docs/industry/` | drafts for operator interviews, a survey, a read-only pilot proposal and outreach (no results yet) |
+
 ## Where things are
 
 ```
@@ -109,9 +129,10 @@ firmware/witness_node/   Arduino sketch plus portable C++ core; firmware/host_te
 training/                node_reference.py (the one definition of what the node computes), train_classifier.py (the V3 analysis), synth.py,
                          measure.py (record and report real measurement sessions: bench, development, evaluation)
 measurements/            one folder per real recording session; today only a bench boot log, no pump
-tests/                   426 tests
-results/                 saved validation, evaluation and measurement output
-docs/                    INTERFACES.md, WIRING.md, HARDWARE_STAGE.md
+tests/                   477 tests, including tests/test_properties.py (Hypothesis fuzzing; HW_FUZZ_EXAMPLES=3000 for a deep run)
+results/                 saved validation, evaluation, statistics, sensitivity, long-study and measurement output
+docs/                    INTERFACES.md, WIRING.md, HARDWARE_STAGE.md, and the evidence documents listed above
+.github/workflows/       CI: runs tools/verify_all.py on every push
 ```
 
 ## Limits you should state out loud
@@ -120,7 +141,8 @@ docs/                    INTERFACES.md, WIRING.md, HARDWARE_STAGE.md
   real pump sounds. That is the next stage, and a FAIL there is a legitimate finding.
 * A careful forgery of every SCADA value is caught by the physical witnesses, but the system only calls it red
   with a human in the loop. A hidden valve closure is amber, never red.
-* The clock's worst case assumes demand stays under the configured peak.
+* The clock's worst case assumes demand stays under the configured peak, and trusts the elevations typed at setup (see `setup_uncertainty_ft`).
+* The full list of what we have not shown is `docs/LIMITATIONS.md`.
 * Alerts go only to a private, token-protected channel; there is no public alerting path by design.
 * Not included: a SCADA adapter for any specific product, direct-pumping (no storage tank) sites, a node that
   buffers events while offline. See `docs/HARDWARE_STAGE.md`.

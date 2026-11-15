@@ -2,7 +2,7 @@
 
 What changed, how to check it, and what is still not done. Everything runs locally; no Supabase, no cloud database, no new service.
 
-Run `python3 -m pytest tests -q` (435 tests, about 3 minutes) and `python3 tools/build_site.py --check` after copying the files in.
+Run `python3 tools/verify_all.py` (tests, then that the saved reports and the website agree with the results; 477 tests, about 2 to 3 minutes) after copying the files in. The nine-point round below came first; the rigor round (November 2026) is at the end.
 
 ## What changed
 
@@ -63,3 +63,46 @@ The teammate flashed the 26 Oct firmware and sent the `mpu` probe output, five s
 - **Fix (confirmed on the board).** The install recordings are stored as 16-bit half-precision numbers (`float_to_half`, `HalfRows` in `hw_model.h`): four blocks of 3,840 bytes, 15 kB in all, taken from the heap only while a calibration runs. If that much is not free at that moment (Wi-Fi busy), the node tries room for 96, then 64, then 48 windows per baseline (as little as 5.8 kB); fewer windows only make the calibration's own accuracy check a little noisier, and a test runs a full calibration with room for 48 and checks the node still follows the pump. Half precision keeps a relative error under 0.05 percent; tests check the conversion bit for bit against numpy for all 65,536 half values and for 60,000 random floats, and that calibrating from halves gives the same verdict and nearly the same model as from floats. `status` now ends with `mem8`, `mem8_max`, `mem8_min` (usable memory: free, largest piece, lowest ever) next to the old `heap*` figures, the boot prints one `I,memory:` line, and every 3 s button hold prints a line saying whether calibration started or was cancelled.
 - **A mistake to avoid:** an intermediate firmware (not shipped to the repo) kept the recordings in 30 kB of fixed memory. That would have used up the usable memory and starved Wi-Fi. It was withdrawn the same day.
 - Tests: 435 in all (428 before this follow-up, plus 3 in `tests/test_firmware_half.py`, 3 in `tests/test_firmware_node.py` for the button events and the crowded-heap cases, 1 in `tests/test_measure.py` that checks the raw serial logs are not git-ignored). The sketch compiles for the ESP32 (1,004,384 bytes of program space, 76%; static data 91,568 bytes, 27%). **Confirmed on the board the same day** (`measurements/2026-10-28-bench-calibration-start-NB`): holding the button started calibration with room for 128 windows and a second hold cancelled it; `mem8` was 31.7 to 32.0 kB free and its lowest ever 13.6 kB. Still not done: a calibration through both baselines, a pump or motor recording, the server link.
+
+---
+
+# Rigor round (November 2026): making the claims checkable
+
+Aim: every number we say in public has a source anyone can re-run, an interval or limit beside it, and a place where its weaknesses are written down. Nothing here is a field result; all of it is simulation, tests and documents.
+
+## What changed
+
+| area | what | where |
+|---|---|---|
+| Exact statistics | Clopper-Pearson and Wilson intervals, exact Poisson upper bounds, tested against textbook values and for the 95% coverage guarantee | `hydrowitness/stats.py`, `tests/test_statistics.py` |
+| Every count has an interval | One report built only from the saved results; `--check` fails if it is stale | `tools/make_statistics.py`, `results/statistics.{json,md}` |
+| Sensitivity of the countdown to setup errors | One-at-a-time and Monte Carlo (4,000 draws per case) over an assumed error model; finding: about 1 site in 10 starts with an optimistic worst case under those assumptions | `tools/sensitivity.py`, `results/sensitivity.{json,md}` |
+| An optional setup allowance | `setup_uncertainty_ft` (0 to 20 ft, default 0) shortens only the worst case; 2 ft cuts the optimistic share to 3.5%, 4 ft to 1.0% | `schemas.py`, `engine/time_to_trouble.py`, `docs/INTERFACES.md` |
+| Long false-alarm study | 80 runs x 5 days = 400 healthy simulated site-days on seeds never used in tuning, 1,267 pump starts and stops: 0 false amber, 0 false red (upper bound 0.0092 per site-day). Resumable | `tools/long_normal.py`, `results/long_normal.{json,md}` |
+| Fuzz and property tests | 12 Hypothesis tests: more water never means less time, a higher peak demand never gives more time, silence is never green, garbage requests never cause a server error | `tests/test_properties.py` |
+| **Two real bugs found by the fuzzing, fixed** | (1) an absurdly large tank level crashed the countdown text with an OverflowError; (2) a request body with invalid text encoding caused an HTTP 500. Now a non-finite level is not a reading, a level above the tank height is capped at the height, and validation errors never echo the input | `time_to_trouble.py`, `api.py` |
+| Load and soak test | The real server under 1x, 20x and 100x a realistic message rate: latency, errors, memory, and whether the evidence log still verifies | `tools/soak_test.py`, `results/soak.{json,md}` |
+| Security scan | `bandit` and `ruff` found no high-severity issue; `pip-audit` found no known-vulnerable dependency at the time of the run. Small fixes: `raise ... from None` in four places | `api.py`, `training/measure.py` |
+| One duplicate test removed | An exact-duplicate pair of tests in `tests/test_consistency.py` shadowed each other | `tests/test_consistency.py` |
+| Intervals on real-pump scores | The held-out report now prints a 95% interval for every score and says that windows are not independent | `training/measure.py`, `tests/test_measure.py` |
+| Website | A "How sure are we?" block whose sentences are generated from the saved statistics; the fuzz finding added to "Also tested"; the in-browser demo recordings regenerated because the clock now lists the setup allowance in its assumptions | `tools/build_site.py`, `tools/site_src/technology.html`, `site/demo/` |
+| One command and CI | `tools/verify_all.py` (`--quick`, `--full`); a GitHub Actions workflow runs it on every push | `tools/verify_all.py`, `.github/workflows/ci.yml` |
+| Evidence documents | Validation matrix, limitations register, threat model, FMEA of the Witness Node, pump-test protocol with a pass line fixed in advance, research basis with only verified citations | `docs/` |
+| Industry kit (drafts) | Interview guide with consent script, an 8-question survey, a read-only pilot proposal, outreach emails, an empty outreach log | `docs/industry/` |
+
+## Things worth knowing
+
+* The first soak run showed one connection failure per Witness Node at 1x. The cause was the test client reusing a connection the server had closed after its idle timeout, not a server fault; a real node opens a new connection for each message. The test now does the same, and the second run had none.
+* `hypothesis` and `pytest-xdist` are now in `requirements.txt`. Without hypothesis the property tests are skipped and say so.
+* Regenerating the demo recordings changed all 13 files under `site/demo/`: the only difference is the new `setup_allowance_ft` field.
+* Deep fuzz run: `HW_FUZZ_EXAMPLES=2500 python3 -m pytest tests/test_properties.py -q` passed after the fixes.
+
+## Still not done (only the team can do these)
+
+1. A **recorded** pump test, following `docs/PUMP_TEST_PROTOCOL.md`, on at least two pumps or on three different days.
+2. Five or more operator interviews and the survey, using `docs/industry/`.
+3. A utility willing to run the read-only pilot, in writing.
+4. A licensed operator or engineer to review the clock's definition and the FMEA; an independent read of the code.
+5. Letters of support in people's own words, after they have seen the work.
+6. Parts receipts or quotes for the budget; permission in writing from the pump owner for any further trial.
+7. Anything about cost and market: no customer has agreed to pay.
